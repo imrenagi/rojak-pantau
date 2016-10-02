@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 *.pyc
 venv/
 .idea/
+=======
+>>>>>>> Ignore .DS_Store
 .DS_Store
