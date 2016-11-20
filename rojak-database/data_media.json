@@ -169,6 +169,7 @@
         "twitter_username": "arahdotcom",
         "instagram_username": "arahdotcom"
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> [rojak-pantau] add spider for arah.com (#192)
 =======
     },
@@ -180,6 +181,16 @@
         "twitter_username": "NUSANEWScom",
         "instagram_username": "nusanews"
 >>>>>>> add spider for nusanews
+=======
+    },
+    {
+        "name": "qureta",
+        "website_url": "http://www.qureta.com",
+        "logo_url": "http://www.qureta.com/sites/default/files/qlogo.png",
+        "fbpage_username": "qureta",
+        "twitter_username": "qureta",
+        "instagram_username": "quretacom"
+>>>>>>> [rojak-pantau] add spider for qureta (#193)
     }
     ]
 }
