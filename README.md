@@ -1,40 +1,34 @@
 # rojak-pantau
 
-Kita menggunakan [Scrapy](https://doc.scrapy.org) untuk dasar `rojak-pantau`.
-Hal ini dikarenakan beberapa pertimbangan yang telah kita diskusikan
-antara lain:
+We are using [Scrapy](https://doc.scrapy.org) as the base for `rojak-pantau`.
+The reason of using this crawling framework are discussed below:
 
-1. Cocok untuk tim. Setiap anggota tim yang mau menambah media tinggal melakukan
-   penambahan dan perubahan sedikit pada source code.
-2. Mudah di deploy
-3. Lengkapnya dokumentasi
+1. Fit the team needs. Any person who would like to add a new crawler for a media only need to add small changes to the source code.
+2. Easy to deploy
+3. Good at documentation
 
 ## Setup
-Pastikan kamu sudah mensetup instance MySQL lokal lalu mempopulate database
-nya:
+Make sure you have MySQL and its table ready. To populate the table use this following commands:
+```
+cd rojak-database
+python insert_candidate_data.py
+python insert_media_data.py
+```
 
-    cd rojak-database
-    python insert_candidate_data.py
-    python insert_media_data.py
+## Run the crawler
+```
+sh install_dependencies.sh
+scrapy crawl detikcom # change detikcom with the crawler name
+```
 
+## Adding new media crawler
 
-## Jalanin pemantau
+To add new media crawler, copy `rojak_pantau/spider/detikcom.py`
+and change the file name to the name of the media. Then, modify `name`, `start_urls`, `parse` method and `parse_news` method.
 
-    sh install_dependencies.sh
-    scrapy crawl detikcom # untuk jalanin rojak-pantau-detik
+## Notes for writing new crawler
 
-## Cara penambahan media baru
-
-Untuk penambahan media baru tinggal copy file `rojak_pantau/spider/detikcom.py`
-lalu mengubah nama file dan class sesuai nama media.
-
-Lalu tinggal memodifikasi `name`, `start_urls`, method `parse` dan
-method `parse_news`
-
-## Catatan untuk untuk membuat spider baru
-
-* `raw_content` harus berisi raw HTML bukan raw plain text. Karena ini kita
-gunakan untuk proses selanjutnya. (Contoh: extract first paragraph)
+* `raw_content` must contains the raw HTML text, not the raw plain text, since this information is gonna be used for specific text processing. (e.g. extracting the first paragraph)
 
 ## Resources
 
