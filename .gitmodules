@@ -1,0 +1,6 @@
+[submodule "rojak-api"]
+	path = rojak-api
+	url = https://github.com/imrenagi/rojak-api.git
+[submodule "rojak-web-frontend"]
+	path = rojak-web-frontend
+	url = https://github.com/imrenagi/rojak-web-frontend.git
