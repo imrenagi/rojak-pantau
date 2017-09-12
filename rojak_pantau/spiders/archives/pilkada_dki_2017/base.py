@@ -104,3 +104,4 @@ class BaseSpider(scrapy.Spider):
                 spider.name, exception)
             spider.slack.chat.post_message('#rojak-pantau-errors',
                     error_msg, as_user=True)
+

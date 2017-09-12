@@ -63,7 +63,7 @@ ROBOTSTXT_OBEY = True
 # See http://scrapy.readthedocs.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
     'rojak_pantau.pipelines.NewsValidation': 100,
-    'rojak_pantau.pipelines.SaveToMySQL': 200,
+    # 'rojak_pantau.pipelines.SaveToMySQL': 200,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
