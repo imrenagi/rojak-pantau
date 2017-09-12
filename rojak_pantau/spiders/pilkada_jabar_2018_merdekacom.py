@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 import scrapy
+import re
 from datetime import datetime
 from scrapy import Request
 from scrapy.loader import ItemLoader
 from scrapy.exceptions import CloseSpider
 
 from rojak_pantau.items import News
+from rojak_pantau.i18n import _
 from rojak_pantau.util.wib_to_utc import wib_to_utc
 from rojak_pantau.spiders.base import BaseSpider
 
@@ -39,16 +41,18 @@ class PilkadaJabar2018MerdekacomSpider(scrapy.Spider):
 
             #info_time = 8 September 2017 16:45:19
             info_time = info.split(',')[1].strip()
+            time_arr = filter(None, re.split('[\s,|]',info_time))
+            info_time = ' '.join([_(s) for s in time_arr if s])
             print info_time
 
             #parse date information
-            #try:
-                #TODO change this
+            try:
+                published_at_wib = datetime.strptime(info_time, '%d %B %Y %H:%M:%S')
+            except ValueError as e:
+                raise CloseSpider('cannot_parse_date: %s' % e)
 
-            #except ValueError as e:
-            #    raise CloseSpider('cannot_parse_date: %s' % e)
-
-            #TODO convert time to UTC+0
+            #convert to utc+0
+            published_at = wib_to_utc(published_at_wib)
 
             #TODO check the last time for scrapping
 
@@ -80,15 +84,19 @@ class PilkadaJabar2018MerdekacomSpider(scrapy.Spider):
 
         # eg: 8 September 2017 21:02
         date_str = date_str.split("|")[1].strip()
+        time_arr = filter(None, re.split('[\s,|]',date_str))
+        info_time = ' '.join([_(s) for s in time_arr if s])
 
-        # try:
-        #     published_at_wib = datetime.strptime(date_str, '%d %b %Y, %H:%M')
-        # except ValueError:
-        #     # Will be dropped on the item pipeline
-        #     return loader.load_item()
-        # published_at = wib_to_utc(published_at_wib)
-        #TODO change this with UTC time
-        loader.add_value('published_at', date_str)
+        #parse date information
+        try:
+            published_at_wib = datetime.strptime(info_time, '%d %B %Y %H:%M')
+        except ValueError as e:
+            raise CloseSpider('cannot_parse_date: %s' % e)
+
+        #convert to utc+0
+        published_at = wib_to_utc(published_at_wib)
+
+        loader.add_value('published_at', published_at)
 
         #parse author name
         author_name_selectors = response.css("div.mdk-date-reporter > span::text")
