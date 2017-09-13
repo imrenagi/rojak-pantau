@@ -32,7 +32,6 @@ class PilkadaJabar2018PikiranRakyatSpider(scrapy.Spider):
                 continue
                 raise CloseSpider('url_selectors not found')
             url = base_url + url_selector.extract()[0]
-            print url
 
             info_selectors = article.css("div.entry-meta > span.entry-date > span::text")
             if not info_selectors:
