@@ -56,12 +56,11 @@ class PilkadaJabar2018MerdekacomSpider(scrapy.Spider):
 
             #TODO check the last time for scrapping
 
-            #TODO check next page in pagination
-            if response.css('div.paging-box'):
-                next_page = response.css('a.link_next::attr(href)')[0].extract()
-                yield Request(next_page, callback=self.parse)
-
             yield Request(url=url, callback=self.parse_news)
+
+        if response.css('div.paging-box'):
+            next_page = response.css('a.link_next::attr(href)')[0].extract()
+            yield Request(next_page, callback=self.parse)
 
     def parse_news(self, response):
         self.logger.info('parse_news: %s' % response)

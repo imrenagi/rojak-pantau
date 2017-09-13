@@ -46,11 +46,11 @@ class PilkadaJabar2018JawaposSpider(scrapy.Spider):
 
             #TODO check the last time for scrapping
 
-            if response.css('a[rel="next"]::attr(href)'):
-                next_page = response.css('a[rel="next"]::attr(href)')[0].extract()
-                yield Request(next_page, callback=self.parse)
-
             yield Request(url=url, callback=self.parse_news)
+
+        if response.css('a[rel="next"]::attr(href)'):
+            next_page = response.css('a[rel="next"]::attr(href)')[0].extract()
+            yield Request(next_page, callback=self.parse)
 
     def parse_news(self, response):
         self.logger.info('parse_news: %s' % response)
