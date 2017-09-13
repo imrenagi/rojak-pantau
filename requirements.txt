@@ -26,3 +26,4 @@ slacker==0.9.25
 Twisted==16.4.1
 w3lib==1.15.0
 zope.interface==4.3.2
+dateparser
