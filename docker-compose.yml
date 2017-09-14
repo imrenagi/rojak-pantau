@@ -1,0 +1,29 @@
+version: '2'
+services:
+
+  spider:
+    build: .
+    container_name: rojak-spider
+    restart: always
+    volumes:
+      - ".:/src"
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "10"
+    tty: true
+
+  mysql:
+    build: ./database
+    container_name: rojak-crawler-db
+    environment:
+      - MYSQL_DATABASE=crawler
+      - MYSQL_ROOT_PASSWORD=rojak
+      - MYSQL_USER=rojak
+      - MYSQL_PASSWORD=rojak
+    ports:
+      - "3307:3306"
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "10"

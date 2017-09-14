@@ -10,6 +10,8 @@ RUN sudo apt-get install -y libmysqlclient-dev
 ADD . /src
 WORKDIR /src
 
+VOLUME /src
+
 ADD requirements.txt /src/requirements.txt
 RUN pip install -r /src/requirements.txt
 

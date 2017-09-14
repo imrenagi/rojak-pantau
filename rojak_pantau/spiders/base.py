@@ -8,11 +8,11 @@ from slacker import Slacker
 from scrapy.exceptions import CloseSpider, NotConfigured
 from scrapy import signals
 
-ROJAK_DB_HOST = os.getenv('ROJAK_DB_HOST', 'localhost')
+ROJAK_DB_HOST = os.getenv('ROJAK_DB_HOST', 'mysql')
 ROJAK_DB_PORT = int(os.getenv('ROJAK_DB_PORT', 3306))
 ROJAK_DB_USER = os.getenv('ROJAK_DB_USER', 'root')
 ROJAK_DB_PASS = os.getenv('ROJAK_DB_PASS', 'rojak')
-ROJAK_DB_NAME = os.getenv('ROJAK_DB_NAME', 'rojak_database')
+ROJAK_DB_NAME = os.getenv('ROJAK_DB_NAME', 'crawler')
 ROJAK_SLACK_TOKEN = os.getenv('ROJAK_SLACK_TOKEN', '')
 
 sql_get_media = '''
