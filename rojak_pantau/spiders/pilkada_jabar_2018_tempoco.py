@@ -4,23 +4,29 @@ import re
 from datetime import datetime
 from scrapy import Request
 from scrapy.loader import ItemLoader
-from scrapy.exceptions import CloseSpider
+from scrapy.exceptions import CloseSpider, DropItem
 
 from rojak_pantau.items import News
 from rojak_pantau.i18n import _
 from rojak_pantau.util.wib_to_utc import wib_to_utc
 from rojak_pantau.spiders.base import BaseSpider
 
-class PilkadaJabar2018TempoSpider(scrapy.Spider):
+class PilkadaJabar2018TempoSpider(BaseSpider):
     name = "pilkada_jabar_2018_tempoco"
     allowed_domains = ["tempo.co"]
     start_urls = (
-        'https://www.tempo.co/topik/masalah/2461/pilkada-jawa-barat#',
+        'https://m.tempo.co/topik/masalah/2461/pilkada-jawa-barat#',
     )
 
+    def __init__(self):
+        media_id = "tempoco"
+        election_id = "pilkada_jabar_2018"
+        super(PilkadaJabar2018TempoSpider, self).__init__(media_id, election_id)
+
     def parse(self, response):
-        base_url = "https://www.tempo.co"
         self.logger.info('parse: %s' % response)
+        is_no_update = False
+        print self.media['last_crawl_at']
 
         #1st article
         article1 = response.css('div.block-box')
@@ -31,6 +37,12 @@ class PilkadaJabar2018TempoSpider(scrapy.Spider):
         if not url_selector:
             raise CloseSpider('url_selectors not found')
         url = url_selector.extract_first()
+
+        published_at = self.extract_date_from_url(url)
+        # if self.media['last_crawl_at'] >= published_at:
+        #     is_no_update = True
+        #     self.logger.info('Main section is stalled')
+        #     return
 
         yield Request(url=url, callback=self.parse_news)
 
@@ -45,15 +57,19 @@ class PilkadaJabar2018TempoSpider(scrapy.Spider):
                 continue
                 raise CloseSpider('url_selectors not found')
             url = url_selector.extract_first()
+
+            published_at = self.extract_date_from_url(url)
+            # if self.media['last_crawl_at'] >= published_at:
+            #     is_no_update = True
+            #     break
+
             yield Request(url=url, callback=self.parse_news)
 
-        url = 'https://www.tempo.co/topik/masalah/2461/pilkada-jawa-barat#'
-        yield Request(url=url, callback=self.parse_first)
+        # if is_no_update:
+        #     self.logger.info('Second section has no update')
+        #     return
 
-    def parse_first(self, response):
-        # base_url = "https://www.tempo.co"
-        # self.logger.info('parse: %s' % response)
-
+        # parse the list news
         articles = response.css('ul#ListTerkini > li')
         if not articles:
             raise CloseSpider('articles not found')
@@ -65,39 +81,38 @@ class PilkadaJabar2018TempoSpider(scrapy.Spider):
                 raise CloseSpider('url_selectors not found')
             url = url_selector.extract_first()
 
-            # info_selectors = article.css("div.entry-meta > span.entry-date > span::text")
-            # if not info_selectors:
-            #     raise CloseSpider('info_selectors not found')
-            # #info = 12 September, 2017 - 15:15
-            # info = info_selectors.extract_first()
-            #
-            # time_arr = filter(None, re.split('[\s,-]',info))
-            # info_time = ' '.join([_(s) for s in time_arr if s])
-            #
-            # #parse date information
-            # try:
-            #     published_at_wib = datetime.strptime(info_time, '%d %B %Y %H:%M')
-            # except ValueError as e:
-            #     raise CloseSpider('cannot_parse_date: %s' % e)
-            #
-            # #convert to utc+0
-            # published_at = wib_to_utc(published_at_wib)
-
-            # #TODO check the last time for scrapping
-            #
+            published_at = self.extract_date_from_url(url)
+            # if self.media['last_crawl_at'] >= published_at:
+            #     is_no_update = True
+            #     break
 
             yield Request(url=url, callback=self.parse_news)
 
-        # pagination = response.css('div.text-center > ul.pagination > li.next')
-        # if pagination:
-        #     next_page = base_url+pagination.css('a::attr(href)').extract_first()
-        #     yield Request(next_page, callback=self.parse)
+        # if is_no_update:
+        #     self.logger.info('Reach the recent news')
+        #     raise CloseSpider('Close spiders because reach the recent news')
+
+    def extract_date_from_url(self, url):
+        # date equals to '2017 01 31'
+        date = ' '.join(url.split('/')[-5:-2])
+        try:
+            published_at_wib = datetime.strptime(date, '%Y %m %d')
+        except ValueError as e:
+            raise CloseSpider('cannot_parse_date: %s' % e)
+
+        #convert to utc+0
+        published_at = wib_to_utc(published_at_wib)
+        return published_at
+
 
     def parse_news(self, response):
         self.logger.info('parse_news: %s' % response)
 
         loader = ItemLoader(item=News(), response=response)
         loader.add_value('url', response.url)
+
+        loader.add_value('media_id', self.media_id)
+        loader.add_value('election_id', self.election_id)
 
         #parse title
         title_selectors = response.css('div.artikel > h1.artikel::text')
@@ -124,6 +139,11 @@ class PilkadaJabar2018TempoSpider(scrapy.Spider):
 
         #convert to utc+0
         published_at = wib_to_utc(published_at_wib)
+
+        if self.media['last_crawl_at'] >= published_at:
+            is_no_update = True
+            return loader.load_item()
+
         loader.add_value('published_at', published_at)
 
         #parse author name
