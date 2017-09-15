@@ -24,14 +24,30 @@ class NewsValidation(object):
             err_msg = 'Missing published_at in: %s' % item.get('url')
             raise DropItem(err_msg)
 
+        media_id = item.get('media_id', 'media_id_empty')
+        if media_id == 'media_id_empty':
+            err_msg = 'Missing media id in: %s' % item.get('url')
+            raise DropItem(err_msg)
+
+        election_id = item.get('election_id', 'election_id_empty')
+        if election_id == 'election_id_empty':
+            err_msg = 'Missing election id in: %s' % item.get('url')
+            raise DropItem(err_msg)
+
         # Pass item to the next pipeline, if any
         return item
 
 class SaveToMySQL(object):
     sql_insert_news = '''
-        INSERT INTO `news`(`media_id`, `title`, `raw_content`,
-            `url`, `author_name`, `published_at`)
-        VALUES (%s, %s, %s, %s, %s, %s);
+        INSERT INTO `news`(
+        `media_id`,
+        `election_id`,
+        `title`,
+        `raw_content`,
+        `url`,
+        `author_name`,
+        `published_at`)
+        VALUES (%s, %s, %s, %s, %s, %s, %s);
     '''
 
     def process_item(self, item, spider):
@@ -40,10 +56,12 @@ class SaveToMySQL(object):
         author_name = item.get('author_name')
         raw_content = item.get('raw_content')
         published_at = item.get('published_at')
+        media_id = item.get('media_id')
+        election_id = item.get('election_id')
 
         # Insert to the database
         try:
-            spider.cursor.execute(self.sql_insert_news, [spider.media['id'],
+            spider.cursor.execute(self.sql_insert_news, [media_id, election_id,
                 title, raw_content, url, author_name, published_at])
             spider.db.commit()
         except mysql.Error as err:

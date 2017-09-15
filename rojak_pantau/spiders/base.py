@@ -8,38 +8,44 @@ from slacker import Slacker
 from scrapy.exceptions import CloseSpider, NotConfigured
 from scrapy import signals
 
-ROJAK_DB_HOST = os.getenv('ROJAK_DB_HOST', 'localhost')
+ROJAK_DB_HOST = os.getenv('ROJAK_DB_HOST', 'mysql')
 ROJAK_DB_PORT = int(os.getenv('ROJAK_DB_PORT', 3306))
 ROJAK_DB_USER = os.getenv('ROJAK_DB_USER', 'root')
 ROJAK_DB_PASS = os.getenv('ROJAK_DB_PASS', 'rojak')
-ROJAK_DB_NAME = os.getenv('ROJAK_DB_NAME', 'rojak_database')
+ROJAK_DB_NAME = os.getenv('ROJAK_DB_NAME', 'crawler')
 ROJAK_SLACK_TOKEN = os.getenv('ROJAK_SLACK_TOKEN', '')
 
 sql_get_media = '''
-SELECT id,last_scraped_at FROM media WHERE name=%s;
+SELECT id,last_crawl_at FROM `crawler_history`
+WHERE media_id=%s AND election_id=%s;
 '''
 
 sql_update_media = '''
-UPDATE `media` SET last_scraped_at=UTC_TIMESTAMP() WHERE name=%s;
+UPDATE `crawler_history`
+SET last_crawl_at=UTC_TIMESTAMP()
+WHERE media_id=%s AND election_id=%s;
 '''
 
 class BaseSpider(scrapy.Spider):
     # Initialize database connection then retrieve media ID and
     # last_scraped_at information
-    def __init__(self):
+    def __init__(self, media_id, election_id):
         # Open database connection
         self.db = mysql.connect(host=ROJAK_DB_HOST, port=ROJAK_DB_PORT,
             user=ROJAK_DB_USER, passwd=ROJAK_DB_PASS, db=ROJAK_DB_NAME)
         self.cursor = self.db.cursor()
 
         self.media = {}
+        self.media_id = media_id
+        self.election_id = election_id
+
         try:
             # Get media information from the database
             self.logger.info('Fetching media information')
-            self.cursor.execute(sql_get_media, [self.name])
+            self.cursor.execute(sql_get_media, [self.media_id, self.election_id])
             row = self.cursor.fetchone()
             self.media['id'] = row[0]
-            self.media['last_scraped_at'] = row[1]
+            self.media['last_crawl_at'] = row[1]
         except mysql.Error as err:
             self.logger.error('Unable to fetch media data: %s', err)
             raise NotConfigured('Unable to fetch media data: %s' % err)
@@ -66,9 +72,9 @@ class BaseSpider(scrapy.Spider):
     def spider_opened(self, spider):
         # Using UTF-8 Encoding
         self.db.set_character_set('utf8')
-        self.cursor.execute('SET NAMES utf8;')
-        self.cursor.execute('SET CHARACTER SET utf8;')
-        self.cursor.execute('SET character_set_connection=utf8;')
+        self.cursor.execute('SET NAMES utf8mb4;')
+        self.cursor.execute('SET CHARACTER SET utf8mb4;')
+        self.cursor.execute('SET character_set_connection=utf8mb4;')
 
     def spider_closed(self, spider, reason):
         spider.logger.info('Spider closed: %s %s', spider.name, reason)
@@ -76,7 +82,7 @@ class BaseSpider(scrapy.Spider):
         if reason == 'finished':
             try:
                 self.logger.info('Updating media last_scraped_at information')
-                self.cursor.execute(sql_update_media, [spider.name])
+                self.cursor.execute(sql_update_media, [spider.media_id, spider.election_id])
                 self.db.commit()
                 self.db.close()
             except mysql.Error as err:
