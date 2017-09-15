@@ -18,7 +18,6 @@ Notes: The crawler will not automatically run when the container has been create
 * Note the `CONTAINER ID` of `rojak-spider`.
 * Use `docker exec -it <CONTAINER ID> bash` to open the crawler console
 * To run the crawler use this following command:
-
 ```
 scrapy crawl pilkada_jabar_2018_merdekacom.py
 ```
