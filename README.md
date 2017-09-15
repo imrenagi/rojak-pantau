@@ -8,17 +8,26 @@ The reason of using this crawling framework are discussed below:
 3. Good at documentation
 
 ## Setup
-Make sure you have MySQL and its table ready. To populate the table use this following commands:
+
+* Install [docker](https://docs.docker.com/engine/installation/) and [docker-compose](https://docs.docker.com/compose/install/).
+* Run the application by running `docker-compose up`
+
+Notes: The crawler will not automatically run when the container has been created. To run the crawler, you need to go container console by doing this following steps:
+
+* Run `docker ps` to see the list of running containers
+* Note the `CONTAINER ID` of `rojak-spider`.
+* Use `docker exec -it <CONTAINER ID> bash` to open the crawler console
+* To run the crawler use this following command:
+
 ```
-cd rojak-database
-python insert_candidate_data.py
-python insert_media_data.py
+scrapy crawl pilkada_jabar_2018_merdekacom.py
 ```
 
-## Run the crawler
+Notes: Since the source code in the crawler container has been mounted to the source code in your host, you don't really have to copy paste the code to the container every time you make any changes on it because the changes you made in your editor will be automatically reflected in the container. So you can change the code from any text editor you want, and simply run the crawler within the container.
+
+* The mysql database will be accessible in `localhost` from port `3307` instead of `3306`. so, if you already have mysql client in your machine, simply run
 ```
-sh install_dependencies.sh
-scrapy crawl detikcom # change detikcom with the crawler name
+mysql --port=3307 --host=localhost --protocol=TCP --user=rojak --password=rojak
 ```
 
 ## Adding new media crawler
