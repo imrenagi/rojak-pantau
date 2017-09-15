@@ -1,141 +1,28 @@
--- Catatan:
--- max int(10) = 4294967295
+USE crawler;
 
--- Menyimpan profile per-orangan dari candidate cagub/cawagub
-CREATE TABLE IF NOT EXISTS `candidate` (
-    `id` int(10) unsigned NOT NULL UNIQUE auto_increment,
-    `full_name` varchar(255) collate utf8_unicode_ci NOT NULL UNIQUE,
-    `alias_name` varchar(255) collate utf8_unicode_ci NOT NULL UNIQUE,
-    `place_of_birth` varchar(255) collate utf8_unicode_ci NOT NULL,
-    `date_of_birth` date NOT NULL,
-    `religion` varchar(255) collate utf8_unicode_ci NOT NULL,
-    `website_url` varchar(255) collate utf8_unicode_ci UNIQUE,
-    `photo_url` varchar(255) collate utf8_unicode_ci UNIQUE,
-    `fbpage_username` varchar(255) collate utf8_unicode_ci UNIQUE,
-    `twitter_username` varchar(255) collate utf8_unicode_ci UNIQUE,
-    `instagram_username` varchar(255) collate utf8_unicode_ci UNIQUE,
-    `inserted_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+CREATE TABLE IF NOT EXISTS `crawler_history` (
+  `id` bigint(20) NOT NULL auto_increment,
+  `media_id` varchar(36) NOT NULL,
+  `election_id` varchar(36) NOT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `last_crawl_at` datetime NOT NULL DEFAULT '2017-01-01 00:00:01',
+  UNIQUE KEY `k_crawler_context` (`media_id`, `election_id`),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;;
 
--- Menyimpan informasi pasangan cagub-cawagub
-CREATE TABLE IF NOT EXISTS `pair_of_candidates` (
-    `id` int(10) unsigned NOT NULL UNIQUE auto_increment,
-    `cagub_id` int(10) unsigned NOT NULL,
-    CONSTRAINT `fk_pair_of_candidates_candidate_id_cagub`
-        FOREIGN KEY (`cagub_id`)
-        REFERENCES candidate(`id`)
-        ON DELETE CASCADE,
-    `cawagub_id` int(10) unsigned NOT NULL,
-    CONSTRAINT `fk_pair_of_candidates_candidate_id_cawagub`
-        FOREIGN KEY (`cawagub_id`)
-        REFERENCES candidate(`id`)
-        ON DELETE CASCADE,
-    `name` varchar(255) collate utf8_unicode_ci NOT NULL UNIQUE,
-    `website_url` varchar(255) collate utf8_unicode_ci UNIQUE,
-    `logo_url` varchar(255) collate utf8_unicode_ci UNIQUE,
-    `fbpage_username` varchar(255) collate utf8_unicode_ci UNIQUE,
-    `twitter_username` varchar(255) collate utf8_unicode_ci UNIQUE,
-    `instagram_username` varchar(255) collate utf8_unicode_ci UNIQUE,
-    `slogan` varchar(255) collate utf8_unicode_ci,
-    `description` text collate utf8_unicode_ci,
-    `inserted_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
--- Menyimpan informasi tentang media
-CREATE TABLE IF NOT EXISTS `media` (
-    `id` int(10) unsigned NOT NULL UNIQUE auto_increment,
-    `name` varchar(255) collate utf8_unicode_ci NOT NULL UNIQUE,
-    `website_url` varchar(255) collate utf8_unicode_ci NOT NULL UNIQUE,
-    `logo_url` varchar(255) collate utf8_unicode_ci UNIQUE,
-    `fbpage_username` varchar(255) collate utf8_unicode_ci UNIQUE,
-    `twitter_username` varchar(255) collate utf8_unicode_ci UNIQUE,
-    `instagram_username` varchar(255) collate utf8_unicode_ci UNIQUE,
-    `last_scraped_at` timestamp NOT NULL DEFAULT '1970-01-02 00:00:01',
-    `inserted_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
--- Menyimpan jenis-jenis sentiment
-CREATE TABLE IF NOT EXISTS `sentiment` (
-    `id` int(10) unsigned NOT NULL UNIQUE auto_increment,
-    `pair_of_candidates_id` int(10) unsigned,
-    CONSTRAINT `fk_sentiment_pair_of_candidates_id`
-        FOREIGN KEY (`pair_of_candidates_id`)
-        REFERENCES pair_of_candidates(`id`)
-        ON DELETE CASCADE,
-    `name` varchar(255) collate utf8_unicode_ci NOT NULL UNIQUE,
-    `inserted_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
--- Untuk menyimpan berita yang di terbitkan oleh media
 CREATE TABLE IF NOT EXISTS `news` (
-    `id` int(10) unsigned NOT NULL UNIQUE auto_increment,
-    `media_id` int(10) unsigned NOT NULL,
-    CONSTRAINT `fk_news_media_id`
-        FOREIGN KEY (`media_id`)
-        REFERENCES media(`id`)
-        ON DELETE CASCADE,
-    `title` varchar(255) collate utf8_unicode_ci NOT NULL UNIQUE,
-    `raw_content` text collate utf8_unicode_ci NOT NULL,
-    `url` varchar(255) collate utf8_unicode_ci NOT NULL UNIQUE,
+    `id` bigint(20) NOT NULL auto_increment,
+    `media_id` varchar(36) NOT NULL,
+    `election_id` varchar(36) NOT NULL,
+    `title` varchar(255) collate utf8mb4_unicode_ci NOT NULL,
+    `raw_content` text collate utf8mb4_unicode_ci NOT NULL,
+    `url` varchar(255) collate utf8mb4_unicode_ci NOT NULL,
     `is_analyzed` bool DEFAULT false,
-    `author_name` varchar(255) collate utf8_unicode_ci,
+    `author_name` varchar(255) collate utf8mb4_unicode_ci,
     `published_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `inserted_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
+    `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY `k_media_id` (`media_id`),
+    KEY `k_election_id` (`election_id`),
     PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
--- Untuk menyimpan sentiment suatu berita
-CREATE TABLE IF NOT EXISTS `news_sentiment` (
-    `id` int(10) unsigned NOT NULL UNIQUE auto_increment,
-    `news_id` int(10) unsigned NOT NULL,
-    CONSTRAINT `fk_news_sentiment_news_id`
-        FOREIGN KEY (`news_id`)
-        REFERENCES news(`id`)
-        ON DELETE CASCADE,
-    `sentiment_id` int(10) unsigned NOT NULL,
-    CONSTRAINT `fk_news_sentiment_sentiment_id`
-        FOREIGN KEY (`sentiment_id`)
-        REFERENCES sentiment(`id`)
-        ON DELETE CASCADE,
-    `confident_score_raw` double NOT NULL,
-    `confident_score_scaled` double NOT NULL,
-    `inserted_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    UNIQUE (`news_id`, `sentiment_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
--- Untuk menyimpan data berita mention candidate siapa aja
-CREATE TABLE IF NOT EXISTS `mention` (
-    `id` int(10) unsigned NOT NULL UNIQUE auto_increment,
-    `news_id` int(10) unsigned NOT NULL,
-    CONSTRAINT `fk_mention_news_id`
-        FOREIGN KEY (`news_id`)
-        REFERENCES news(`id`)
-        ON DELETE CASCADE,
-    `candidate_id` int(10) unsigned NOT NULL,
-    CONSTRAINT `fk_mention_candidate_id`
-        FOREIGN KEY (`candidate_id`)
-        REFERENCES candidate(`id`)
-        ON DELETE CASCADE,
-    `inserted_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    UNIQUE (`news_id`, `candidate_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

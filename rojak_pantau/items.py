@@ -14,4 +14,4 @@ class News(scrapy.Item):
     raw_content = scrapy.Field()
     published_at = scrapy.Field()
     media_id = scrapy.Field()
-
+    election_id = scrapy.Field()

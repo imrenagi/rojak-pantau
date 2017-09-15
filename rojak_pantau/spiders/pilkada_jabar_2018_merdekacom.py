@@ -11,16 +11,23 @@ from rojak_pantau.i18n import _
 from rojak_pantau.util.wib_to_utc import wib_to_utc
 from rojak_pantau.spiders.base import BaseSpider
 
-class PilkadaJabar2018MerdekacomSpider(scrapy.Spider):
+class PilkadaJabar2018MerdekacomSpider(BaseSpider):
     name = "pilkada_jabar_2018_merdekacom"
     allowed_domains = ["m.merdeka.com"]
     start_urls = (
         'https://m.merdeka.com/tag/p/pilgub-jabar/',
     )
 
+    def __init__(self):
+        media_id = "merdekacom"
+        election_id = "pilkada_jabar_2018"
+        super(PilkadaJabar2018MerdekacomSpider, self).__init__(media_id, election_id)
+
     def parse(self, response):
         base_url = "https://m.merdeka.com"
         self.logger.info('parse: %s' % response)
+        print self.media['last_crawl_at']
+        is_no_update = False
 
         articles = response.css("div#mdk-tag-news-list_mobile > ul > li")
         if not articles:
@@ -54,9 +61,17 @@ class PilkadaJabar2018MerdekacomSpider(scrapy.Spider):
             #convert to utc+0
             published_at = wib_to_utc(published_at_wib)
 
+            if self.media['last_crawl_at'] >= published_at:
+                is_no_update = True
+                break
+
             #TODO check the last time for scrapping
 
             yield Request(url=url, callback=self.parse_news)
+
+        if is_no_update:
+            self.logger.info('Media have no update')
+            return
 
         if response.css('div.paging-box'):
             next_page = response.css('a.link_next::attr(href)')[0].extract()
@@ -67,6 +82,9 @@ class PilkadaJabar2018MerdekacomSpider(scrapy.Spider):
 
         loader = ItemLoader(item=News(), response=response)
         loader.add_value('url', response.url)
+
+        loader.add_value('media_id', self.media_id)
+        loader.add_value('election_id', self.election_id)
 
         #parse title
         title_selectors = response.css('div#mdk-news-title::text')
