@@ -11,15 +11,22 @@ from rojak_pantau.i18n import _
 from rojak_pantau.util.wib_to_utc import wib_to_utc
 from rojak_pantau.spiders.base import BaseSpider
 
-class PilkadaJabar2018SindonewscomSpider(scrapy.Spider):
+class PilkadaJabar2018SindonewscomSpider(BaseSpider):
     name = "pilkada_jabar_2018_sindonewscom"
     allowed_domains = ["sindonews.com"]
     start_urls = (
         'https://daerah.sindonews.com/topic/673/pilgub-jabar/',
     )
 
+    def __init__(self):
+        media_id = "sindonewscom"
+        election_id = "pilkada_jabar_2018"
+        super(PilkadaJabar2018SindonewscomSpider, self).__init__(media_id, election_id)
+
     def parse(self, response):
         # self.logger.info('parse this url: %s' % response.url)
+        print self.media['last_crawl_at']
+        is_no_update = False
 
         articles = response.css('div.news > ul > li')
         if not articles:
@@ -39,9 +46,15 @@ class PilkadaJabar2018SindonewscomSpider(scrapy.Spider):
             except:
                 continue
 
-            #TODO check the last time for scrapping
+            if self.media['last_crawl_at'] >= published_at:
+                is_no_update = True
+                break
 
             yield Request(url=url, callback=self.parse_news)
+
+        if is_no_update:
+            self.logger.info('Media have no update')
+            return
 
         pages = response.css('div.mpaging > ul > li')
         if pages:
@@ -57,6 +70,9 @@ class PilkadaJabar2018SindonewscomSpider(scrapy.Spider):
 
         loader = ItemLoader(item=News(), response=response)
         loader.add_value('url', response.url)
+
+        loader.add_value('media_id', self.media_id)
+        loader.add_value('election_id', self.election_id)
 
         #parse title
         title_selectors = response.css('div.article-box > h1::text')

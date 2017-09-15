@@ -11,15 +11,21 @@ from rojak_pantau.i18n import _
 from rojak_pantau.util.wib_to_utc import wib_to_utc
 from rojak_pantau.spiders.base import BaseSpider
 
-class PilkadaJabar2018RepublikaSpider(scrapy.Spider):
+class PilkadaJabar2018RepublikaSpider(BaseSpider):
     name = "pilkada_jabar_2018_republika"
     allowed_domains = ["republika.co.id"]
     start_urls = (
         'http://m.republika.co.id/indeks/hot_topic/pilkada_jabar',
     )
 
+    def __init__(self):
+        media_id = "republika"
+        election_id = "pilkada_jabar_2018"
+        super(PilkadaJabar2018RepublikaSpider, self).__init__(media_id, election_id)
+
     def parse(self, response):
         # self.logger.info('parse this url: %s' % response.url)
+        is_no_update = False
 
         articles = response.css('div.wp-terhangat')
         if not articles:
@@ -52,11 +58,16 @@ class PilkadaJabar2018RepublikaSpider(scrapy.Spider):
 
             #convert to utc+0
             published_at = wib_to_utc(published_at_wib)
-            print published_at
 
-            #TODO check the last time for scrapping
+            if self.media['last_crawl_at'] >= published_at:
+                is_no_update = True
+                break
 
             yield Request(url=url, callback=self.parse_news)
+
+        if is_no_update:
+            self.logger.info('Media have no update')
+            return
 
         if response.css('div.pagination > section > nav > ul > li.button'):
             next_page = response.css('div.pagination > section > nav > ul > li.button > a::attr(href)')[0].extract()
@@ -68,6 +79,9 @@ class PilkadaJabar2018RepublikaSpider(scrapy.Spider):
 
         loader = ItemLoader(item=News(), response=response)
         loader.add_value('url', response.url)
+
+        loader.add_value('media_id', self.media_id)
+        loader.add_value('election_id', self.election_id)
 
         #parse title
         title_selectors = response.css('div.wrap-head > h2 > a::text')

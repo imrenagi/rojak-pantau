@@ -26,3 +26,10 @@ CREATE TABLE IF NOT EXISTS `news` (
     KEY `k_election_id` (`election_id`),
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `crawler_history` (`id`, `media_id`, `election_id`, `created_at`, `last_crawl_at`)
+VALUES
+	(1, 'merdekacom', 'pilkada_jabar_2018', '2017-09-15 03:24:49', '2017-01-01 00:00:01'),
+	(2, 'sindonewscom', 'pilkada_jabar_2018', '2017-09-15 04:20:52', '2017-01-01 00:00:01'),
+  (3, 'republika', 'pilkada_jabar_2018', '2017-09-15 04:20:52', '2017-01-01 00:00:01'),
+  (4, 'jawaposcom', 'pilkada_jabar_2018', '2017-09-15 04:20:52', '2017-01-01 00:00:01');

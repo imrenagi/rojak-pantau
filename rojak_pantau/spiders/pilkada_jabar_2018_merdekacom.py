@@ -65,8 +65,6 @@ class PilkadaJabar2018MerdekacomSpider(BaseSpider):
                 is_no_update = True
                 break
 
-            #TODO check the last time for scrapping
-
             yield Request(url=url, callback=self.parse_news)
 
         if is_no_update:

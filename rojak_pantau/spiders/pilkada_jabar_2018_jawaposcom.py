@@ -15,14 +15,20 @@ from rojak_pantau.spiders.base import BaseSpider
 class OldNewsException(Exception):
     pass
 
-class PilkadaJabar2018JawaposSpider(scrapy.Spider):
+class PilkadaJabar2018JawaposSpider(BaseSpider):
     name = "pilkada_jabar_2018_jawaposcom"
     start_urls = (
         'https://www.jawapos.com/tag/15041/pilgub-jabar',
     )
 
+    def __init__(self):
+        media_id = "jawaposcom"
+        election_id = "pilkada_jabar_2018"
+        super(PilkadaJabar2018JawaposSpider, self).__init__(media_id, election_id)
+
     def parse(self, response):
         base_url = "https://m.jawapos.com"
+        is_no_update = False
 
         articles = response.css("div.wrp-itemnewsterkini > div.item-newsterkini")
         if not articles:
@@ -42,11 +48,17 @@ class PilkadaJabar2018JawaposSpider(scrapy.Spider):
 
             # eg: 6 Hours ago
             date_str = date_str.split("|")[0].strip()
-            time_in_utc = parse(date_str)
+            published_at = parse(date_str)
 
-            #TODO check the last time for scrapping
+            if self.media['last_crawl_at'] >= published_at:
+                is_no_update = True
+                break
 
             yield Request(url=url, callback=self.parse_news)
+
+        if is_no_update:
+            self.logger.info('Media have no update')
+            return
 
         if response.css('a[rel="next"]::attr(href)'):
             next_page = response.css('a[rel="next"]::attr(href)')[0].extract()
@@ -57,6 +69,9 @@ class PilkadaJabar2018JawaposSpider(scrapy.Spider):
 
         loader = ItemLoader(item=News(), response=response)
         loader.add_value('url', response.url)
+
+        loader.add_value('media_id', self.media_id)
+        loader.add_value('election_id', self.election_id)
 
         #parse title
         title_selectors = response.css('h1::text')
