@@ -5,6 +5,8 @@ import sys
 import re
 import pickle
 import itertools
+import click
+import json
 
 from bs4 import BeautifulSoup
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -18,53 +20,40 @@ import numpy as np
 
 import stopwords
 
-# Classifier names
-CLASSIFIER_AGUS_SYLVI = 'classifier_agus_sylvi'
-CLASSIFIER_AHOK_DJAROT = 'classifier_ahok_djarot'
-CLASSIFIER_ANIES_SANDI = 'classifier_anies_sandi'
-CLASSIFIER_OOT = 'classifier_oot'
+@click.group()
+def cli():
+    pass
+
+# Train Rojak
+@click.command('train')
+@click.option('--input', 'input_file',
+        default='', help='Path to training data file',
+        type=click.Path(exists=True))
+@click.option('--output', 'output_file',
+        default='', help='Where the model written to',
+        type=click.Path())
+@click.option('--config', 'config_file',
+        default='', help='Path to json config file',
+        type=click.Path(exists=True))
+def start(input_file, output_file, config_file):
+    """Train Rojak"""
+    execute(input_file, output_file, config_file)
+cli.add_command(start)
+
+CLASSIFIER_OOT='classifier_oot'
+
+# with open('config/election/training_pilkada_dki_2017.json') as json_data:
+#     config = json.load(json_data)
+    # print config
 
 # Compile regex to remove non-alphanum char
 nonalpha = re.compile('[^a-z\-\.]+')
 
-# Map the commonly used candidate name and their corresponding official pair 
+# Map the commonly used candidate name and their corresponding official pair
 # name. This is used to improve classifier accuracy
-official_candidates = {
-    'agus': 'agus-sylvi',
-    'harimurti': 'agus-sylvi',
-    'yudhoyono': 'agus-sylvi',
-    'ahy': 'agus-sylvi',
-    'sylvi': 'agus-sylvi',
-    'sylviana': 'agus-sylvi',
-    'agus-sylviana': 'agus-sylvi',
-    'yudhoyono-sylviana': 'agus-sylvi',
-    'agus-sylvia': 'agus-sylvi',
-    'harimurti-sylviana': 'agus-sylvi',
-    'ahok': 'ahok-djarot',
-    'basuki': 'ahok-djarot',
-    'tjahaja': 'ahok-djarot',
-    'purnama': 'ahok-djarot',
-    'btp': 'ahok-djarot',
-    'djarot': 'ahok-djarot',
-    'saiful': 'ahok-djarot',
-    'hidayat': 'ahok-djarot',
-    'petahana': 'ahok-djarot',
-    'ahok-djarot': 'ahok-djarot',
-    'basuki-djarot': 'ahok-djarot',
-    'ahokdjarot.id': 'ahok-djarot',
-    'incumbent': 'ahok-djarot',
-    'petahana': 'ahok-djarot',
-    'anies': 'anies-sandi',
-    'baswedan': 'anies-sandi',
-    'sandi': 'anies-sandi',
-    'sandiaga': 'anies-sandi',
-    'uno': 'anies-sandi',
-    'anies-sandiaga': 'anies-sandi',
-    'baswedan-sandiaga': 'anies-sandi',
-    'anies-uno': 'anies-sandi',
-    'aniesbaswedan': 'anies-sandi',
-    'anis': 'anies-sandi'
-}
+official_candidates = {}#config['official_candidates']
+
+config = {}
 
 # Normalize the word
 def normalize_word(w, use_synonym=True):
@@ -86,10 +75,10 @@ def normalize_word(w, use_synonym=True):
     # Example: bukanlah
     # lah_except = ['masalah']
     # if (len(word) > 5 and word[-3:] == 'lah' and not word in lah_except):
-    #     word = word[:len(word)-3] 
+    #     word = word[:len(word)-3]
 
     # Remove -nya form
-    # Example: bukannya => bukan, disayanginya => disayang, 
+    # Example: bukannya => bukan, disayanginya => disayang,
     # komunikasinya => komunikasi
     if (len(word) > 5 and word[-3:] == 'nya'):
         word = word[:len(word)-3]
@@ -152,7 +141,7 @@ def clean_string(s, use_synonym=True):
         word = stopwords_removed[i]
 
         # Normalize the negation
-        negations = ['tidak', 'enggak', 'bukan', 'tdk', 'bkn', 'tak', 
+        negations = ['tidak', 'enggak', 'bukan', 'tdk', 'bkn', 'tak',
             'belum', 'tidaklah', 'bukanlah', 'ga']
         if word in negations:
             if i < (word_len-2):
@@ -189,7 +178,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='',
         pyplot.text(j, i, cm[i, j],
                  horizontalalignment="center",
                  color="white" if cm[i, j] > thresh else "black")
-    
+
     pyplot.ylabel('True label')
     pyplot.xlabel('Predicted label' + '\n\n' + classifier_name)
     pyplot.tight_layout()
@@ -204,31 +193,7 @@ def whitespace_tokenizer(s):
 class RojakOvRPair():
     # Storing classifier
     classifiers = {}
-
-    # Map of label name and the corresponding classifier ID
-    # We create 4 classifiers:
-    # * classifier_agus_sylvi => to predict pos/neg/not about agus-sylvi
-    # * classifier_ahok_djarot => to predict pos/neg/not about ahok-djarot
-    # * classifier_anies_sandi => to predict pos/neg/not about anies-sandi
-    # * classifier_oot => to predict oot or not
-    #
-    # Infer rules:
-    # - Given news, Is it oot or not?
-    #     - If oot => label news as oot
-    #     - If not:
-    #         - For each classifier classifier_agus_sylvi, 
-    #           classifier_ahok_djarot, classifier_anies_sandi take the 
-    #           label that have confident score larger than given threshold
-    #           otherwise we don't label the news
-    classifier_label = {
-        'pos_agus_sylvi': CLASSIFIER_AGUS_SYLVI,
-        'neg_agus_sylvi': CLASSIFIER_AGUS_SYLVI,
-        'pos_ahok_djarot': CLASSIFIER_AHOK_DJAROT,
-        'neg_ahok_djarot': CLASSIFIER_AHOK_DJAROT,
-        'pos_anies_sandi': CLASSIFIER_ANIES_SANDI,
-        'neg_anies_sandi': CLASSIFIER_ANIES_SANDI,
-        'oot': CLASSIFIER_OOT
-    }
+    classifier_label = {}
 
     # Map classifier ID and the training and test data
     training_data_text = {}
@@ -242,11 +207,35 @@ class RojakOvRPair():
         self.tokenizer = tokenizer
 
     # Collect the data from csv file
-    def _collect_data_from_csv(self, input_file, container_text, 
+    def _collect_data_from_csv(self, input_file, config_file, container_text,
             container_class):
         # Read the input_file
         csv_file = open(input_file)
         csv_reader = csv.DictReader(csv_file)
+
+        with open(config_file) as json_data:
+            config = json.load(json_data)
+
+        training_labels = config['training_labels']
+
+        # Map of label name and the corresponding classifier ID
+        # We create 4 classifiers:
+        # * classifier_agus_sylvi => to predict pos/neg/not about agus-sylvi
+        # * classifier_ahok_djarot => to predict pos/neg/not about ahok-djarot
+        # * classifier_anies_sandi => to predict pos/neg/not about anies-sandi
+        # * classifier_oot => to predict oot or not
+        #
+        # Infer rules:
+        # - Given news, Is it oot or not?
+        #     - If oot => label news as oot
+        #     - If not:
+        #         - For each classifier classifier_agus_sylvi,
+        #           classifier_ahok_djarot, classifier_anies_sandi take the
+        #           label that have confident score larger than given threshold
+        #           otherwise we don't label the news
+        self.classifier_label = config['classifier_label']
+        # print classifier_label
+
         for row in csv_reader:
             # Get the data
             try:
@@ -268,14 +257,14 @@ class RojakOvRPair():
             # print 'clean_title:', clean_title
             # print 'raw_content:', raw_content
             # print 'clean_content:', clean_content
-            # print '=== Debug end' 
+            # print '=== Debug end'
 
             # Collect the labels
             for label in labels:
                 # Skip unknown label
                 if not label in self.classifier_label: continue
                 classifier_id = self.classifier_label[label]
-                if (classifier_id in container_text 
+                if (classifier_id in container_text
                     and classifier_id in container_class):
                     container_text[classifier_id].append(clean_text)
                     container_class[classifier_id].append(label)
@@ -283,76 +272,44 @@ class RojakOvRPair():
                     container_text[classifier_id] = [clean_text]
                     container_class[classifier_id] = [label]
 
-            # Create artificial label not_oot
-            if not 'oot' in labels:
-                label = 'not_oot'
-                classifier_name = CLASSIFIER_OOT
-                if (classifier_name in container_text 
-                    and classifier_name in container_class):
-                    container_text[classifier_name].append(clean_text)
-                    container_class[classifier_name].append(label)
-                else:
-                    container_text[classifier_name] = [clean_text]
-                    container_class[classifier_name] = [label]
+            for item in training_labels:
+                not_about_candidate = True
+                for news_label in item['candidate_labels']:
+                    if not news_label in label:
+                        not_about_candidate = not_about_candidate and True
+                    else:
+                        not_about_candidate = not_about_candidate and False
 
-            # Create artificial label not_agus_sylvi
-            if (not 'pos_agus_sylvi' in labels 
-                    and not 'neg_agus_sylvi' in labels):
-                label = 'not_agus_sylvi'
-                classifier_name = CLASSIFIER_AGUS_SYLVI
-                if (classifier_name in container_text 
-                    and classifier_name in container_class):
-                    container_text[classifier_name].append(clean_text)
-                    container_class[classifier_name].append(label)
-                else:
-                    container_text[classifier_name] = [clean_text]
-                    container_class[classifier_name] = [label]
-
-            # Create artificial label not_ahok_djarot
-            if (not 'pos_ahok_djarot' in labels 
-                    and not 'neg_ahok_djarot' in labels):
-                label = 'not_ahok_djarot'
-                classifier_name = CLASSIFIER_AHOK_DJAROT
-                if (classifier_name in container_text 
-                    and classifier_name in container_class):
-                    container_text[classifier_name].append(clean_text)
-                    container_class[classifier_name].append(label)
-                else:
-                    container_text[classifier_name] = [clean_text]
-                    container_class[classifier_name] = [label]
-
-            # Create artificial label not_anies_sandi
-            if (not 'pos_anies_sandi' in labels 
-                    and not 'neg_anies_sandi' in labels):
-                label = 'not_anies_sandi'
-                classifier_name = CLASSIFIER_ANIES_SANDI
-                if (classifier_name in container_text 
-                    and classifier_name in container_class):
-                    container_text[classifier_name].append(clean_text)
-                    container_class[classifier_name].append(label)
-                else:
-                    container_text[classifier_name] = [clean_text]
-                    container_class[classifier_name] = [label]
+                if not_about_candidate:
+                    label = item['not_label']
+                    classifier_name = item['classifier_name']
+                    if (classifier_name in container_text
+                        and classifier_name in container_class):
+                        container_text[classifier_name].append(clean_text)
+                        container_class[classifier_name].append(label)
+                    else:
+                        container_text[classifier_name] = [clean_text]
+                        container_class[classifier_name] = [label]
 
         csv_file.close()
 
-    # input_file is a path to csv with the following headers: 
+    # input_file is a path to csv with the following headers:
     # 'title', 'raw_content', 'labels'
     # output_file is a path where the model written into
-    def train(self, input_file, output_file):
+    def train(self, input_file, config_file, output_file):
         # Collect the training data
-        self._collect_data_from_csv(input_file, self.training_data_text, 
+        self._collect_data_from_csv(input_file, config_file, self.training_data_text,
             self.training_data_class)
 
-        # For each classifier, we extract the features and train the 
+        # For each classifier, we extract the features and train the
         # classifier
         for key in self.training_data_text:
             news_texts = self.training_data_text[key]
             news_labels = self.training_data_class[key]
-            
+
             # Create feature extractor
             feature_extractor = TfidfVectorizer(min_df=self.min_df,
-                ngram_range=(1,self.max_ngram), 
+                ngram_range=(1,self.max_ngram),
                 decode_error='ignore',
                 stop_words=stopwords.stopwords,
                 tokenizer=self.tokenizer)
@@ -381,18 +338,18 @@ class RojakOvRPair():
             }
 
         # Save the model as binary file
-        pickle.dump(self.classifiers, open(output_file, 'w'), 
+        pickle.dump(self.classifiers, open(output_file, 'w'),
             protocol=pickle.HIGHEST_PROTOCOL)
 
     def load_model(self, model):
         self.classifiers = pickle.load(open(model))
 
-    def eval(self, model, test_data):
+    def eval(self, model, config_file, test_data):
         # Load the model
         self.load_model(model)
 
         # Collect the test data
-        self._collect_data_from_csv(test_data, self.test_data_text, 
+        self._collect_data_from_csv(test_data, config_file, self.test_data_text,
             self.test_data_class)
 
         # We do the evaluation
@@ -423,9 +380,9 @@ class RojakOvRPair():
             # print '=== End debug'
 
             # Evaluate the score
-            precision = metrics.precision_score(y_true, y_pred, 
+            precision = metrics.precision_score(y_true, y_pred,
                 average='micro')
-            recall = metrics.recall_score(y_true, y_pred, 
+            recall = metrics.recall_score(y_true, y_pred,
                 average='micro')
             f1_score = 2*((precision*recall)/(precision+recall))
             print 'classifier:', key
@@ -435,7 +392,7 @@ class RojakOvRPair():
 
             # Create the confusion matrix visualization
             conf_matrix = metrics.confusion_matrix(y_true, y_pred)
-            plot_confusion_matrix(conf_matrix, 
+            plot_confusion_matrix(conf_matrix,
                 classes=classifier.classes_,
                 title='Confusion matrix without normalization',
                 classifier_name=key)
@@ -477,73 +434,78 @@ class RojakOvRPair():
         result['labels'] = labels
         return result
 
-if __name__ == '__main__':
+def execute(input_file_path, model_output_path, config_file_path):
+
+    with open(config_file_path) as json_data:
+        config = json.load(json_data)
+        official_candidates = config['official_candidates']
+
     max_ngram = 5
     rojak = RojakOvRPair(max_ngram=max_ngram, tokenizer=whitespace_tokenizer)
-    model_name = 'rojak_ovr_pair_latest_{}_gram_model.bin'.format(max_ngram)
-    rojak.train('data_training_7_labels_latest.csv', model_name)
-    rojak.eval(model_name, 'data_training_7_labels_latest.csv')
-    
+    model_file_path = model_output_path+'rojak_ovr_pair_latest_{}_gram_model.bin'.format(max_ngram)
+    rojak.train(input_file_path, config_file_path, model_file_path)
+    rojak.eval(model_file_path, config_file_path, input_file_path)
+
     print '== Test'
     test_news_text = '''
     Ogah Ikut 'Perang' Statement di Pilgub DKI, Agus: Menghabiskan Energi
     <strong>Jakarta </strong> - Pasangan incumbent DKI Basuki T Purnama (
-    Ahok) dan Djarot Saiful Hidayat beberapa kali tampak adu statement 
-    dengan pasangan bakal calon Anies Baswedan dan Sandiaga Uno. Kandidat 
-    bakal Cagub DKI Agus Harimurti mengaku tak mau ikut-ikutan terlebih 
-    dahulu. <br> <br> ""Pertama masa kampanye baru dimulai 28 Oktober. 
-    Artinya itu berdasarkan UU itulah yang akan saya gunakan langsung 
-    official untuk menyebarluaskan menyampaikan gagasan visi misi program 
-    kerja dan sebagainya,"" ungkap Agus. <br> <br> Hal tersebut 
-    disampaikannya saat berbincang di redaksi detikcom, Jalan Warung Jati 
-    Barat Raya, Jakarta Selatan, Kamis (6/10/2016). Agus mengaku saat ini 
-    lebih ingin memanfaatkan waktu untuk mensosialisasikan diri sesuai 
-    tahapan KPUD. <br> <br> ""Pada akhirnya tentu saya akan lakukan itu. 
-    Saya menghindari konflik karena hati saya mengatakan buat apa saya 
-    mencari dari kesalahan orang atau terlibat dalam konflik karena 
-    menghabiskan energi,"" ucapnya. <br> <br> Apalagi menurut Agus, ia 
+    Ahok) dan Djarot Saiful Hidayat beberapa kali tampak adu statement
+    dengan pasangan bakal calon Anies Baswedan dan Sandiaga Uno. Kandidat
+    bakal Cagub DKI Agus Harimurti mengaku tak mau ikut-ikutan terlebih
+    dahulu. <br> <br> ""Pertama masa kampanye baru dimulai 28 Oktober.
+    Artinya itu berdasarkan UU itulah yang akan saya gunakan langsung
+    official untuk menyebarluaskan menyampaikan gagasan visi misi program
+    kerja dan sebagainya,"" ungkap Agus. <br> <br> Hal tersebut
+    disampaikannya saat berbincang di redaksi detikcom, Jalan Warung Jati
+    Barat Raya, Jakarta Selatan, Kamis (6/10/2016). Agus mengaku saat ini
+    lebih ingin memanfaatkan waktu untuk mensosialisasikan diri sesuai
+    tahapan KPUD. <br> <br> ""Pada akhirnya tentu saya akan lakukan itu.
+    Saya menghindari konflik karena hati saya mengatakan buat apa saya
+    mencari dari kesalahan orang atau terlibat dalam konflik karena
+    menghabiskan energi,"" ucapnya. <br> <br> Apalagi menurut Agus, ia
     berhubungan baik dengan para pasangan calon tersebut. Mantan Danyon 203/
-    Arya Kemuning itu mengaku ingin fokus menyapa masyarakat bersama dengan 
-    pasangan cawagubnya, Sylvia Murni. <br> <br> ""Saatnya nanti kita akan 
-    langsung ke masyarakat. (Untuk mensosialisasikan) yang saya miliki, 
-    mengapa anda harus memahami dan mengapa ada kepentingan Anda untuk 
-    memilih saya,"" kata Agus. <br> <br> Kehadiran putra sulung Presiden 
-    ke-6 RI Susilo Bambang Yudhoyono (SBY) itu seperti antitesa seorang Ahok 
+    Arya Kemuning itu mengaku ingin fokus menyapa masyarakat bersama dengan
+    pasangan cawagubnya, Sylvia Murni. <br> <br> ""Saatnya nanti kita akan
+    langsung ke masyarakat. (Untuk mensosialisasikan) yang saya miliki,
+    mengapa anda harus memahami dan mengapa ada kepentingan Anda untuk
+    memilih saya,"" kata Agus. <br> <br> Kehadiran putra sulung Presiden
+    ke-6 RI Susilo Bambang Yudhoyono (SBY) itu seperti antitesa seorang Ahok
     yang dikenal keras. Agus dinilai sebagai sosok yang santun dan membumi. <
-    br> <br> ""Insya Allah yang saya tampilkan sehari-hari itu apa adanya 
-    saya. Karena saya tidak setuju kalau mengubah karakter yang sudah 
-    dibentuk selama puluhan tahun kemudian dibentuk hanya untuk memenuhi 
-    permintaan pasar atau permintaan media,"" terang dia. <br> <br> 
-    ""Artinya saya menjadi sesuatu yang artificial, saya di CFD berlari 
-    menyapa masyarakat itu juga yang sebetulnya saya biasa lakukan dulu 
+    br> <br> ""Insya Allah yang saya tampilkan sehari-hari itu apa adanya
+    saya. Karena saya tidak setuju kalau mengubah karakter yang sudah
+    dibentuk selama puluhan tahun kemudian dibentuk hanya untuk memenuhi
+    permintaan pasar atau permintaan media,"" terang dia. <br> <br>
+    ""Artinya saya menjadi sesuatu yang artificial, saya di CFD berlari
+    menyapa masyarakat itu juga yang sebetulnya saya biasa lakukan dulu
     ataupun sebelum saya punya kesibukan di kota lain,"" imbuh Agus. <br> <
-    br> Mantan perwira berpangkat Mayor itu memastikan penampilan atau sikap 
-    sehari-harinya bukan sebagai sesuatu yang palsu. Agus juga menyatakan 
-    ada banyak aspirasi masyarakat yang ia dapati ketika turun menyapa ke 
+    br> Mantan perwira berpangkat Mayor itu memastikan penampilan atau sikap
+    sehari-harinya bukan sebagai sesuatu yang palsu. Agus juga menyatakan
+    ada banyak aspirasi masyarakat yang ia dapati ketika turun menyapa ke
     lapangan. <br> <br> ""Mereka mengekpresikan banyak hal. Yang paling (
-    saya) senang ya tentu mendoakan 'Pak, semoga sukses'. Tetapi saya tidak 
-    ingin hanya disenangi tapi untuk mencari tahu apa yang menjadi keluhan 
-    dan kebutuhan masyakarat,"" urainya. <br> <br> Lantas apa yang paling 
-    banyak didapat Agus ketika menyapa warga? <br> <br> ""Mereka ingin 
-    kehidupan ekonominya menjadi baik, lingkungan lebih baik, nggak terlalu 
-    macet, bisa memiliki akses kesehatan yang lebih baik. Tapi banyak juga 
-    yang mereka (mengatakan) 'Pak kami ingin dihargai, ingin diayomi,'. As 
-    simpel as that,"" jawab Agus. <br> <br> Pernyataan itu tampaknya seperti 
-    menyindir Ahok yang beberapa kali beradu mulut dengan warga. Ini terkait 
-    dengan kebijakan Ahok yang tidak diterima warga. Tak jarang petahana itu 
-    mengeluarkan kata-kata makian. <br> <br> ""(Warga juga bilang) 'kami 
-    punya harga diri pak. Kami nggak butuh itu, tidak perlu yang 
-    berlebihan-lebihan asalkan kami dihargai sebagai warga masyarakat'. 
-    Sebagai human being yang memiliki hak dan kewajiban yang juga untuk 
+    saya) senang ya tentu mendoakan 'Pak, semoga sukses'. Tetapi saya tidak
+    ingin hanya disenangi tapi untuk mencari tahu apa yang menjadi keluhan
+    dan kebutuhan masyakarat,"" urainya. <br> <br> Lantas apa yang paling
+    banyak didapat Agus ketika menyapa warga? <br> <br> ""Mereka ingin
+    kehidupan ekonominya menjadi baik, lingkungan lebih baik, nggak terlalu
+    macet, bisa memiliki akses kesehatan yang lebih baik. Tapi banyak juga
+    yang mereka (mengatakan) 'Pak kami ingin dihargai, ingin diayomi,'. As
+    simpel as that,"" jawab Agus. <br> <br> Pernyataan itu tampaknya seperti
+    menyindir Ahok yang beberapa kali beradu mulut dengan warga. Ini terkait
+    dengan kebijakan Ahok yang tidak diterima warga. Tak jarang petahana itu
+    mengeluarkan kata-kata makian. <br> <br> ""(Warga juga bilang) 'kami
+    punya harga diri pak. Kami nggak butuh itu, tidak perlu yang
+    berlebihan-lebihan asalkan kami dihargai sebagai warga masyarakat'.
+    Sebagai human being yang memiliki hak dan kewajiban yang juga untuk
     memajukan daerahnya. Jadi kadang ada yang begitu juga,"" cerita Agus. <
-    br> <br> Seperti diketahui, Ahok beberapa kali memberi pernyataan 
-    'serangan' kepada pasangan Anies-Sandiaga. Ahok sempat terlibat argumen 
-    lewat media tentang kebersihan sungai di Jakarta. Kemudian Ahok dan 
-    Sandiaga juga 'perang' pernyataan tentang pembuktian harta terbalik. 
-    Terakhir Ahok menyerang dengan mengatakan Sandiaga adalah pengemplang 
+    br> <br> Seperti diketahui, Ahok beberapa kali memberi pernyataan
+    'serangan' kepada pasangan Anies-Sandiaga. Ahok sempat terlibat argumen
+    lewat media tentang kebersihan sungai di Jakarta. Kemudian Ahok dan
+    Sandiaga juga 'perang' pernyataan tentang pembuktian harta terbalik.
+    Terakhir Ahok menyerang dengan mengatakan Sandiaga adalah pengemplang
     pajak karena ikut program Tax Amnesty. <br> <br>   <iframe src=""http://
-    tv.detik.com/20detik/embed/161007018/"" frameborder=""0"" 
-    scrolling=""no"" width=""420"" height=""236"" 
+    tv.detik.com/20detik/embed/161007018/"" frameborder=""0""
+    scrolling=""no"" width=""420"" height=""236""
     allowfullscreen=""allowfullscreen""></iframe>   <br> <br>   <strong>(ear/
     imk)</strong>"
     '''
@@ -554,3 +516,5 @@ if __name__ == '__main__':
     print 'True label:', test_news_label
     print 'Prediction:', prediction
 
+if __name__ == '__main__':
+    cli()

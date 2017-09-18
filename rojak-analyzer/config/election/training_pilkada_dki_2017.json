@@ -1,0 +1,67 @@
+{
+	"official_candidates": {
+		"agus": "agus-sylvi",
+		"harimurti": "agus-sylvi",
+		"yudhoyono": "agus-sylvi",
+		"ahy": "agus-sylvi",
+		"sylvi": "agus-sylvi",
+		"sylviana": "agus-sylvi",
+		"agus-sylviana": "agus-sylvi",
+		"yudhoyono-sylviana": "agus-sylvi",
+		"agus-sylvia": "agus-sylvi",
+		"harimurti-sylviana": "agus-sylvi",
+		"ahok": "ahok-djarot",
+		"basuki": "ahok-djarot",
+		"tjahaja": "ahok-djarot",
+		"purnama": "ahok-djarot",
+		"btp": "ahok-djarot",
+		"djarot": "ahok-djarot",
+		"saiful": "ahok-djarot",
+		"hidayat": "ahok-djarot",
+		"ahok-djarot": "ahok-djarot",
+		"basuki-djarot": "ahok-djarot",
+		"ahokdjarot.id": "ahok-djarot",
+		"incumbent": "ahok-djarot",
+		"petahana": "ahok-djarot",
+		"anies": "anies-sandi",
+		"baswedan": "anies-sandi",
+		"sandi": "anies-sandi",
+		"sandiaga": "anies-sandi",
+		"uno": "anies-sandi",
+		"anies-sandiaga": "anies-sandi",
+		"baswedan-sandiaga": "anies-sandi",
+		"anies-uno": "anies-sandi",
+		"aniesbaswedan": "anies-sandi",
+		"anis": "anies-sandi"
+	},
+	"classifier_label": {
+		"pos_agus_sylvi": "classifier_agus_sylvi",
+		"neg_agus_sylvi": "classifier_agus_sylvi",
+		"pos_ahok_djarot": "classifier_ahok_djarot",
+		"neg_ahok_djarot": "classifier_ahok_djarot",
+		"pos_anies_sandi": "classifier_anies_sandi",
+		"neg_anies_sandi": "classifier_anies_sandi",
+		"oot": "classifier_oot"
+	},
+	"training_labels": [{
+			"candidate_labels": ["pos_agus_sylvi", "neg_agus_sylvi"],
+			"classifier_name": "classifier_agus_sylvi",
+			"not_label": "not_agus_sylvi"
+		},
+		{
+			"candidate_labels": ["pos_ahok_djarot", "neg_ahok_djarot"],
+			"classifier_name": "classifier_ahok_djarot",
+			"not_label": "not_ahok_djarot"
+		},
+		{
+			"candidate_labels": ["pos_anies_sandi", "neg_anies_sandi"],
+			"classifier_name": "classifier_anies_sandi",
+			"not_label": "not_ahok_djarot"
+		},
+		{
+			"candidate_labels": ["oot"],
+			"classifier_name": "classifier_oot",
+			"not_label": "not_oot"
+		}
+	]
+}
