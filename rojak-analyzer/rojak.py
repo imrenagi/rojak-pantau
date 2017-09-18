@@ -30,9 +30,12 @@ def cli():
 @click.option('--output', 'output_file',
         default='', help='Where the model written to',
         type=click.Path())
-def train(input_file, output_file):
+@click.option('--config', 'config_file',
+        default='', help='Path to json config file',
+        type=click.Path(exists=True))
+def train(input_file, output_file, config_file):
     """Train Rojak"""
-    rojak.train(input_file, output_file)
+    rojak.train(input_file, config_file, output_file)
 cli.add_command(train)
 
 # Eval Rojak
@@ -41,8 +44,11 @@ cli.add_command(train)
         type=click.Path(exists=True))
 @click.option('--test-data', default='', help='Path to test data',
         type=click.Path(exists=True))
+@click.option('--config', 'config_file',
+        default='', help='Path to json config file',
+        type=click.Path(exists=True))
 def evaluate(model, test_data):
-    rojak.eval(model, test_data)
+    rojak.eval(model, config_file, test_data)
 cli.add_command(evaluate)
 
 # Map candidate name to their corresponding data
@@ -100,29 +106,29 @@ def scale_confident_score(score_raw):
 @click.command('run')
 @click.option('--model', default='', help='Path to the model file',
     type=click.Path(exists=True))
-@click.option('--db-host', 'db_host', default='localhost', 
+@click.option('--db-host', 'db_host', default='localhost',
     help='Database host')
-@click.option('--db-port', 'db_port', default=3306, 
+@click.option('--db-port', 'db_port', default=3306,
     help='Database port number')
-@click.option('--db-user', 'db_user', default='root', 
+@click.option('--db-user', 'db_user', default='root',
     help='Database user name')
-@click.option('--db-pass', 'db_pass', default='rojak', 
+@click.option('--db-pass', 'db_pass', default='rojak',
     help='Database user password')
-@click.option('--db-name', 'db_name', default='rojak_database', 
+@click.option('--db-name', 'db_name', default='rojak_database',
     help='Database name')
 @click.option('--max-news', default=100, help='Maximal news analyzed')
 @click.option('--exclude-media', 'exclude_media_names', default='',
     help='Exclude media, media name separated by comma')
 @click.option('--only-media', 'only_media_names', default='',
     help='Run analyzer only for this media')
-def run(model, db_host, db_port, db_user, db_pass, db_name, max_news, 
+def run(model, db_host, db_port, db_user, db_pass, db_name, max_news,
     exclude_media_names, only_media_names):
     """Run Rojak to analyze data on the database"""
     # Load the model
     rojak.load_model(model)
 
     # Open database connection
-    db = mysql.connect(host=db_host, port=db_port, user=db_user, 
+    db = mysql.connect(host=db_host, port=db_port, user=db_user,
         passwd=db_pass, db=db_name)
     # Set autocommit to false
     db.autocommit(False)
@@ -221,7 +227,7 @@ def run(model, db_host, db_port, db_user, db_pass, db_name, max_news,
 
         # Get mention information
         print '=== Start debug mention'
-        clean_raw_text = rojak_ovr_pair.clean_string(raw_text, 
+        clean_raw_text = rojak_ovr_pair.clean_string(raw_text,
             use_synonym=False)
         normalized_words = clean_raw_text.lower().split(' ')
         print 'raw_text:', raw_text
@@ -243,7 +249,7 @@ def run(model, db_host, db_port, db_user, db_pass, db_name, max_news,
         print 'label:', pred['labels']
         print 'confident_score:', pred['confident_score']
         print '=== End debug label'
-        
+
         # Insert to the database
         insert_cursor = db.cursor()
         sql_insert_mention = '''
@@ -251,7 +257,7 @@ def run(model, db_host, db_port, db_user, db_pass, db_name, max_news,
             values (%s, %s);
         '''
         sql_insert_sentiment = '''
-            insert into news_sentiment(`news_id`, `sentiment_id`, 
+            insert into news_sentiment(`news_id`, `sentiment_id`,
                 `confident_score_raw`, `confident_score_scaled`)
             values (%s, %s, %s, %s);
         '''
@@ -262,9 +268,9 @@ def run(model, db_host, db_port, db_user, db_pass, db_name, max_news,
             # For mention data
             for candidate_name in mentioned_candidates:
                 candidate_id = candidate_data[candidate_name]['id']
-                if candidate_id == -1: 
+                if candidate_id == -1:
                     raise Exception('candidate_id data not updated')
-                insert_cursor.execute(sql_insert_mention, [news_id, 
+                insert_cursor.execute(sql_insert_mention, [news_id,
                     candidate_id])
 
             # For sentiment data
@@ -273,11 +279,11 @@ def run(model, db_host, db_port, db_user, db_pass, db_name, max_news,
                 raise Exception('Cannot predict the labels')
             for label in labels:
                 sentiment_id = sentiment_data_id[label]
-                if sentiment_id == -1: 
+                if sentiment_id == -1:
                     raise Exception('candidate_id data not updated')
                 score = pred['confident_score'][label]
                 score_scaled = scale_confident_score(score)
-                insert_cursor.execute(sql_insert_sentiment, [news_id, 
+                insert_cursor.execute(sql_insert_sentiment, [news_id,
                     sentiment_id, score, score_scaled])
 
             # Update is_analyzed status
