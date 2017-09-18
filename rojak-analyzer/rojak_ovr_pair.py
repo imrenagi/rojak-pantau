@@ -42,17 +42,18 @@ cli.add_command(start)
 
 CLASSIFIER_OOT='classifier_oot'
 
-
-with open('config/election/training_pilkada_dki_2017.json') as json_data:
-    config = json.load(json_data)
-    # print(d)
+# with open('config/election/training_pilkada_dki_2017.json') as json_data:
+#     config = json.load(json_data)
+    # print config
 
 # Compile regex to remove non-alphanum char
 nonalpha = re.compile('[^a-z\-\.]+')
 
 # Map the commonly used candidate name and their corresponding official pair
 # name. This is used to improve classifier accuracy
-official_candidates = config['official_candidates']
+official_candidates = {}#config['official_candidates']
+
+config = {}
 
 # Normalize the word
 def normalize_word(w, use_synonym=True):
@@ -192,24 +193,7 @@ def whitespace_tokenizer(s):
 class RojakOvRPair():
     # Storing classifier
     classifiers = {}
-
-    # Map of label name and the corresponding classifier ID
-    # We create 4 classifiers:
-    # * classifier_agus_sylvi => to predict pos/neg/not about agus-sylvi
-    # * classifier_ahok_djarot => to predict pos/neg/not about ahok-djarot
-    # * classifier_anies_sandi => to predict pos/neg/not about anies-sandi
-    # * classifier_oot => to predict oot or not
-    #
-    # Infer rules:
-    # - Given news, Is it oot or not?
-    #     - If oot => label news as oot
-    #     - If not:
-    #         - For each classifier classifier_agus_sylvi,
-    #           classifier_ahok_djarot, classifier_anies_sandi take the
-    #           label that have confident score larger than given threshold
-    #           otherwise we don't label the news
-    classifier_label = config['classifier_label']
-    # print classifier_label
+    classifier_label = {}
 
     # Map classifier ID and the training and test data
     training_data_text = {}
@@ -223,13 +207,34 @@ class RojakOvRPair():
         self.tokenizer = tokenizer
 
     # Collect the data from csv file
-    def _collect_data_from_csv(self, input_file, container_text,
+    def _collect_data_from_csv(self, input_file, config_file, container_text,
             container_class):
         # Read the input_file
         csv_file = open(input_file)
         csv_reader = csv.DictReader(csv_file)
 
+        with open(config_file) as json_data:
+            config = json.load(json_data)
+
         training_labels = config['training_labels']
+
+        # Map of label name and the corresponding classifier ID
+        # We create 4 classifiers:
+        # * classifier_agus_sylvi => to predict pos/neg/not about agus-sylvi
+        # * classifier_ahok_djarot => to predict pos/neg/not about ahok-djarot
+        # * classifier_anies_sandi => to predict pos/neg/not about anies-sandi
+        # * classifier_oot => to predict oot or not
+        #
+        # Infer rules:
+        # - Given news, Is it oot or not?
+        #     - If oot => label news as oot
+        #     - If not:
+        #         - For each classifier classifier_agus_sylvi,
+        #           classifier_ahok_djarot, classifier_anies_sandi take the
+        #           label that have confident score larger than given threshold
+        #           otherwise we don't label the news
+        self.classifier_label = config['classifier_label']
+        # print classifier_label
 
         for row in csv_reader:
             # Get the data
@@ -291,9 +296,9 @@ class RojakOvRPair():
     # input_file is a path to csv with the following headers:
     # 'title', 'raw_content', 'labels'
     # output_file is a path where the model written into
-    def train(self, input_file, output_file):
+    def train(self, input_file, config_file, output_file):
         # Collect the training data
-        self._collect_data_from_csv(input_file, self.training_data_text,
+        self._collect_data_from_csv(input_file, config_file, self.training_data_text,
             self.training_data_class)
 
         # For each classifier, we extract the features and train the
@@ -339,12 +344,12 @@ class RojakOvRPair():
     def load_model(self, model):
         self.classifiers = pickle.load(open(model))
 
-    def eval(self, model, test_data):
+    def eval(self, model, config_file, test_data):
         # Load the model
         self.load_model(model)
 
         # Collect the test data
-        self._collect_data_from_csv(test_data, self.test_data_text,
+        self._collect_data_from_csv(test_data, config_file, self.test_data_text,
             self.test_data_class)
 
         # We do the evaluation
@@ -430,11 +435,16 @@ class RojakOvRPair():
         return result
 
 def execute(input_file_path, model_output_path, config_file_path):
+
+    with open(config_file_path) as json_data:
+        config = json.load(json_data)
+        official_candidates = config['official_candidates']
+
     max_ngram = 5
     rojak = RojakOvRPair(max_ngram=max_ngram, tokenizer=whitespace_tokenizer)
-    model_name = model_output_path+'rojak_ovr_pair_latest_{}_gram_model.bin'.format(max_ngram)
-    rojak.train(input_file_path, model_name)
-    rojak.eval(model_name, input_file_path)
+    model_file_path = model_output_path+'rojak_ovr_pair_latest_{}_gram_model.bin'.format(max_ngram)
+    rojak.train(input_file_path, config_file_path, model_file_path)
+    rojak.eval(model_file_path, config_file_path, input_file_path)
 
     print '== Test'
     test_news_text = '''
