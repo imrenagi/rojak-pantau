@@ -5,6 +5,8 @@ import sys
 import re
 import pickle
 import itertools
+import click
+import json
 
 from bs4 import BeautifulSoup
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -18,53 +20,39 @@ import numpy as np
 
 import stopwords
 
-# Classifier names
-CLASSIFIER_AGUS_SYLVI = 'classifier_agus_sylvi'
-CLASSIFIER_AHOK_DJAROT = 'classifier_ahok_djarot'
-CLASSIFIER_ANIES_SANDI = 'classifier_anies_sandi'
-CLASSIFIER_OOT = 'classifier_oot'
+@click.group()
+def cli():
+    pass
+
+# Train Rojak
+@click.command('train')
+@click.option('--input', 'input_file',
+        default='', help='Path to training data file',
+        type=click.Path(exists=True))
+@click.option('--output', 'output_file',
+        default='', help='Where the model written to',
+        type=click.Path())
+@click.option('--config', 'config_file',
+        default='', help='Path to json config file',
+        type=click.Path(exists=True))
+def start(input_file, output_file, config_file):
+    """Train Rojak"""
+    execute(input_file, output_file, config_file)
+cli.add_command(start)
+
+CLASSIFIER_OOT='classifier_oot'
+
+
+with open('config/election/training_pilkada_dki_2017.json') as json_data:
+    config = json.load(json_data)
+    # print(d)
 
 # Compile regex to remove non-alphanum char
 nonalpha = re.compile('[^a-z\-\.]+')
 
 # Map the commonly used candidate name and their corresponding official pair
 # name. This is used to improve classifier accuracy
-official_candidates = {
-    'agus': 'agus-sylvi',
-    'harimurti': 'agus-sylvi',
-    'yudhoyono': 'agus-sylvi',
-    'ahy': 'agus-sylvi',
-    'sylvi': 'agus-sylvi',
-    'sylviana': 'agus-sylvi',
-    'agus-sylviana': 'agus-sylvi',
-    'yudhoyono-sylviana': 'agus-sylvi',
-    'agus-sylvia': 'agus-sylvi',
-    'harimurti-sylviana': 'agus-sylvi',
-    'ahok': 'ahok-djarot',
-    'basuki': 'ahok-djarot',
-    'tjahaja': 'ahok-djarot',
-    'purnama': 'ahok-djarot',
-    'btp': 'ahok-djarot',
-    'djarot': 'ahok-djarot',
-    'saiful': 'ahok-djarot',
-    'hidayat': 'ahok-djarot',
-    'petahana': 'ahok-djarot',
-    'ahok-djarot': 'ahok-djarot',
-    'basuki-djarot': 'ahok-djarot',
-    'ahokdjarot.id': 'ahok-djarot',
-    'incumbent': 'ahok-djarot',
-    'petahana': 'ahok-djarot',
-    'anies': 'anies-sandi',
-    'baswedan': 'anies-sandi',
-    'sandi': 'anies-sandi',
-    'sandiaga': 'anies-sandi',
-    'uno': 'anies-sandi',
-    'anies-sandiaga': 'anies-sandi',
-    'baswedan-sandiaga': 'anies-sandi',
-    'anies-uno': 'anies-sandi',
-    'aniesbaswedan': 'anies-sandi',
-    'anis': 'anies-sandi'
-}
+official_candidates = config['official_candidates']
 
 # Normalize the word
 def normalize_word(w, use_synonym=True):
@@ -220,15 +208,8 @@ class RojakOvRPair():
     #           classifier_ahok_djarot, classifier_anies_sandi take the
     #           label that have confident score larger than given threshold
     #           otherwise we don't label the news
-    classifier_label = {
-        'pos_agus_sylvi': CLASSIFIER_AGUS_SYLVI,
-        'neg_agus_sylvi': CLASSIFIER_AGUS_SYLVI,
-        'pos_ahok_djarot': CLASSIFIER_AHOK_DJAROT,
-        'neg_ahok_djarot': CLASSIFIER_AHOK_DJAROT,
-        'pos_anies_sandi': CLASSIFIER_ANIES_SANDI,
-        'neg_anies_sandi': CLASSIFIER_ANIES_SANDI,
-        'oot': CLASSIFIER_OOT
-    }
+    classifier_label = config['classifier_label']
+    # print classifier_label
 
     # Map classifier ID and the training and test data
     training_data_text = {}
@@ -248,8 +229,7 @@ class RojakOvRPair():
         csv_file = open(input_file)
         csv_reader = csv.DictReader(csv_file)
 
-        test = [{ 'candidate_labels': ['pos_agus_sylvi', 'neg_agus_sylvi'], 'classifier_name': 'classifier_agus_sylvi', 'not_label': 'not_agus_sylvi' }, { 'candidate_labels': ['pos_ahok_djarot', 'neg_ahok_djarot'], 'classifier_name': 'classifier_ahok_djarot', 'not_label': 'not_ahok_djarot'  }, {'candidate_labels': ['pos_anies_sandi', 'neg_anies_sandi'], 'classifier_name': 'classifier_anies_sandi', 'not_label': 'not_anies_sandi' }, {'candidate_labels': ['oot'], 'classifier_name': 'classifier_oot', 'not_label': 'not_oot'  }]
-        print test
+        training_labels = config['training_labels']
 
         for row in csv_reader:
             # Get the data
@@ -287,7 +267,7 @@ class RojakOvRPair():
                     container_text[classifier_id] = [clean_text]
                     container_class[classifier_id] = [label]
 
-            for item in test:
+            for item in training_labels:
                 not_about_candidate = True
                 for news_label in item['candidate_labels']:
                     if not news_label in label:
@@ -449,12 +429,12 @@ class RojakOvRPair():
         result['labels'] = labels
         return result
 
-if __name__ == '__main__':
+def execute(input_file_path, model_output_path, config_file_path):
     max_ngram = 5
     rojak = RojakOvRPair(max_ngram=max_ngram, tokenizer=whitespace_tokenizer)
-    model_name = 'rojak_ovr_pair_latest_{}_gram_model.bin'.format(max_ngram)
-    rojak.train('data_training_7_labels_latest.csv', model_name)
-    rojak.eval(model_name, 'data_training_7_labels_latest.csv')
+    model_name = model_output_path+'rojak_ovr_pair_latest_{}_gram_model.bin'.format(max_ngram)
+    rojak.train(input_file_path, model_name)
+    rojak.eval(model_name, input_file_path)
 
     print '== Test'
     test_news_text = '''
@@ -525,3 +505,6 @@ if __name__ == '__main__':
     print test_news_text
     print 'True label:', test_news_label
     print 'Prediction:', prediction
+
+if __name__ == '__main__':
+    cli()
