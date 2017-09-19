@@ -19,7 +19,7 @@ Notes: The crawler will not automatically run when the container has been create
 * Use `docker exec -it <CONTAINER ID> bash` to open the crawler console
 * To run the crawler use this following command:
 ```
-scrapy crawl pilkada_jabar_2018_merdekacom.py
+scrapy crawl pilkada_jabar_2018_merdekacom
 ```
 
 Notes: Since the source code in the crawler container has been mounted to the source code in your host, you don't really have to copy paste the code to the container every time you make any changes on it because the changes you made in your editor will be automatically reflected in the container. So you can change the code from any text editor you want, and simply run the crawler within the container.
