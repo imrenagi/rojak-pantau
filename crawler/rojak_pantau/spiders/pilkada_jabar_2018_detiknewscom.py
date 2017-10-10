@@ -27,42 +27,40 @@ class PilkadaJabar2018DetiknewscomSpider(BaseSpider):
         is_no_update = False
 
         articles = response.css("div.l_content > ul > li > article")
-        if not articles:
-            raise CloseSpider('articles not found')
+        if articles:
+            for article in articles:
+                url_selector = article.css("a::attr(href)")
+                if not url_selector:
+                    raise CloseSpider('url_selectors not found')
+                url = url_selector.extract()[0]
+                # print url
 
-        for article in articles:
-            url_selector = article.css("a::attr(href)")
-            if not url_selector:
-                raise CloseSpider('url_selectors not found')
-            url = url_selector.extract()[0]
-            print url
+                # parse date
+                date_selectors = article.css("div.box_text > div.date::text")
+                if not date_selectors:
+                    raise CloseSpider('url_selectors not found')
+                date_str = date_selectors.extract()[0]
 
-            # parse date
-            date_selectors = article.css("div.box_text > div.date::text")
-            if not date_selectors:
-                raise CloseSpider('url_selectors not found')
-            date_str = date_selectors.extract()[0]
+                # date_str = Senin, 09 Okt 2017 16:12 WIB
 
-            # date_str = Senin, 09 Okt 2017 16:12 WIB
+                info_time = date_str.split(',')[1].strip()
+                time_arr = filter(None, re.split('[\s,|]',info_time))[:4]
+                info_time = ' '.join([_(s) for s in time_arr if s])
 
-            info_time = date_str.split(',')[1].strip()
-            time_arr = filter(None, re.split('[\s,|]',info_time))[:4]
-            info_time = ' '.join([_(s) for s in time_arr if s])
+                try:
+                    published_at_wib = datetime.strptime(info_time, '%d %b %Y %H:%M')
+                except ValueError as e:
+                    raise CloseSpider('cannot_parse_date: %s' % e)
 
-            try:
-                published_at_wib = datetime.strptime(info_time, '%d %b %Y %H:%M')
-            except ValueError as e:
-                raise CloseSpider('cannot_parse_date: %s' % e)
+                #convert to utc+0
+                published_at = wib_to_utc(published_at_wib)
 
-            #convert to utc+0
-            published_at = wib_to_utc(published_at_wib)
+                # eg: 6 Hours ago
+                if self.media['last_crawl_at'] >= published_at:
+                    is_no_update = True
+                    break
 
-            # eg: 6 Hours ago
-            if self.media['last_crawl_at'] >= published_at:
-                is_no_update = True
-                break
-
-            yield Request(url=url, callback=self.parse_news)
+                yield Request(url=url, callback=self.parse_news)
 
         if is_no_update:
             self.logger.info('Media have no update')
@@ -73,7 +71,6 @@ class PilkadaJabar2018DetiknewscomSpider(BaseSpider):
             yield Request(next_page, callback=self.parse)
 
     def parse_news(self, response):
-        # self.logger.info('parse_news: %s' % response)
 
         loader = ItemLoader(item=News(), response=response)
         loader.add_value('url', response.url)
