@@ -29,28 +29,27 @@ class PilkadaJabar2018SindonewscomSpider(BaseSpider):
         is_no_update = False
 
         articles = response.css('div.news > ul > li')
-        if not articles:
-            raise CloseSpider('articles not found')
+        if articles:
 
-        for article in articles:
-            url_selector = article.css('div.breaking-title > a::attr(href)')
-            if not url_selector:
-                continue
-                # raise CloseSpider('url_selectors not found ' + response.url)
-            url = url_selector.extract()[0]
-            print url
+            for article in articles:
+                url_selector = article.css('div.breaking-title > a::attr(href)')
+                if not url_selector:
+                    continue
+                    # raise CloseSpider('url_selectors not found ' + response.url)
+                url = url_selector.extract()[0]
+                print url
 
-            try:
-                timestamp = url.split("-")[-1]
-                published_at = datetime.fromtimestamp(float(timestamp))
-            except:
-                continue
+                try:
+                    timestamp = url.split("-")[-1]
+                    published_at = datetime.fromtimestamp(float(timestamp))
+                except:
+                    continue
 
-            if self.media['last_crawl_at'] >= published_at:
-                is_no_update = True
-                break
+                if self.media['last_crawl_at'] >= published_at:
+                    is_no_update = True
+                    break
 
-            yield Request(url=url, callback=self.parse_news)
+                yield Request(url=url, callback=self.parse_news)
 
         if is_no_update:
             self.logger.info('Media have no update')

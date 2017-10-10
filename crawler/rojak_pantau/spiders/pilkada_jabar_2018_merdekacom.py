@@ -30,42 +30,40 @@ class PilkadaJabar2018MerdekacomSpider(BaseSpider):
         is_no_update = False
 
         articles = response.css("div#mdk-tag-news-list_mobile > ul > li")
-        if not articles:
-            raise CloseSpider('articles not found')
+        if articles:
+            for article in articles:
+                url_selector = article.css("div > a::attr(href)")
+                if not url_selector:
+                    raise CloseSpider('url_selectors not found')
+                url = base_url + url_selector.extract()[0]
+                print url
 
-        for article in articles:
-            url_selector = article.css("div > a::attr(href)")
-            if not url_selector:
-                raise CloseSpider('url_selectors not found')
-            url = base_url + url_selector.extract()[0]
-            print url
+                info_selectors = article.css("div > b.mdk-time::text")
+                if not info_selectors:
+                    raise CloseSpider('info_selectors not found')
+                #info = Jumat, 8 September 2017 16:45:19
+                info = info_selectors.extract_first().replace(u'\xa0',u'')
 
-            info_selectors = article.css("div > b.mdk-time::text")
-            if not info_selectors:
-                raise CloseSpider('info_selectors not found')
-            #info = Jumat, 8 September 2017 16:45:19
-            info = info_selectors.extract_first().replace(u'\xa0',u'')
+                #info_time = 8 September 2017 16:45:19
+                info_time = info.split(',')[1].strip()
+                time_arr = filter(None, re.split('[\s,|]',info_time))
+                info_time = ' '.join([_(s) for s in time_arr if s])
+                print info_time
 
-            #info_time = 8 September 2017 16:45:19
-            info_time = info.split(',')[1].strip()
-            time_arr = filter(None, re.split('[\s,|]',info_time))
-            info_time = ' '.join([_(s) for s in time_arr if s])
-            print info_time
+                #parse date information
+                try:
+                    published_at_wib = datetime.strptime(info_time, '%d %B %Y %H:%M:%S')
+                except ValueError as e:
+                    raise CloseSpider('cannot_parse_date: %s' % e)
 
-            #parse date information
-            try:
-                published_at_wib = datetime.strptime(info_time, '%d %B %Y %H:%M:%S')
-            except ValueError as e:
-                raise CloseSpider('cannot_parse_date: %s' % e)
+                #convert to utc+0
+                published_at = wib_to_utc(published_at_wib)
 
-            #convert to utc+0
-            published_at = wib_to_utc(published_at_wib)
+                if self.media['last_crawl_at'] >= published_at:
+                    is_no_update = True
+                    break
 
-            if self.media['last_crawl_at'] >= published_at:
-                is_no_update = True
-                break
-
-            yield Request(url=url, callback=self.parse_news)
+                yield Request(url=url, callback=self.parse_news)
 
         if is_no_update:
             self.logger.info('Media have no update')

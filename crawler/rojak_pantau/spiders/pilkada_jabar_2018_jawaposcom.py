@@ -31,30 +31,28 @@ class PilkadaJabar2018JawaposSpider(BaseSpider):
         is_no_update = False
 
         articles = response.css("div.wrp-itemnewsterkini > div.item-newsterkini")
-        if not articles:
-            raise CloseSpider('articles not found')
+        if articles:            
+            for article in articles:
+                url_selector = article.css("a::attr(href)")
+                if not url_selector:
+                    raise CloseSpider('url_selectors not found')
+                url = url_selector.extract()[0]
 
-        for article in articles:
-            url_selector = article.css("a::attr(href)")
-            if not url_selector:
-                raise CloseSpider('url_selectors not found')
-            url = url_selector.extract()[0]
+                # parse date
+                date_selectors = response.css("div.date-tag::text")
+                if not date_selectors:
+                    raise CloseSpider('url_selectors not found')
+                date_str = date_selectors.extract()[0]
 
-            # parse date
-            date_selectors = response.css("div.date-tag::text")
-            if not date_selectors:
-                raise CloseSpider('url_selectors not found')
-            date_str = date_selectors.extract()[0]
+                # eg: 6 Hours ago
+                date_str = date_str.split("|")[0].strip()
+                published_at = parse(date_str)
 
-            # eg: 6 Hours ago
-            date_str = date_str.split("|")[0].strip()
-            published_at = parse(date_str)
+                if self.media['last_crawl_at'] >= published_at:
+                    is_no_update = True
+                    break
 
-            if self.media['last_crawl_at'] >= published_at:
-                is_no_update = True
-                break
-
-            yield Request(url=url, callback=self.parse_news)
+                yield Request(url=url, callback=self.parse_news)
 
         if is_no_update:
             self.logger.info('Media have no update')
