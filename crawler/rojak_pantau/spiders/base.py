@@ -82,9 +82,9 @@ class BaseSpider(scrapy.Spider):
         if reason == 'finished':
             try:
                 self.logger.info('Updating media last_scraped_at information')
-                # self.cursor.execute(sql_update_media, [spider.media_id, spider.election_id])
-                # self.db.commit()
-                # self.db.close()
+                self.cursor.execute(sql_update_media, [spider.media_id, spider.election_id])
+                self.db.commit()
+                self.db.close()
             except mysql.Error as err:
                 self.logger.error('Unable to update last_scraped_at: %s', err)
                 self.db.rollback()
