@@ -32,6 +32,7 @@ class i18n(object):
             'Jun': 'Jun',
             'Jul': 'Jul',
             'Agt': 'Aug',
+            'Agu': 'Aug',
             'Sep': 'Sep',
             'Okt': 'Oct',
             'Nov': 'Nov',
