@@ -15,7 +15,7 @@ class PilkadaJabar2018RepublikaSpider(BaseSpider):
     name = "pilkada_jabar_2018_republika"
     allowed_domains = ["republika.co.id"]
     start_urls = (
-        'http://m.republika.co.id/indeks/hot_topic/pilkada_jabar',
+        'http://www.republika.co.id/indeks/hot_topic/pilkada%20jabar/',
     )
 
     def __init__(self):
@@ -37,22 +37,21 @@ class PilkadaJabar2018RepublikaSpider(BaseSpider):
                 continue
                 # raise CloseSpider('url_selectors not found ' + response.url)
             url = url_selector.extract()[0]
-            print url
 
             info_selectors = article.css("div.item3 > span::text")
             if not info_selectors:
                 raise CloseSpider('info_selectors not found')
-            #info = Tuesday, 12 September 2017
+            #info = Jumat, 15 Sep 2017 22:04 WIB
             info = info_selectors.extract_first()
 
-            #info_time = 8 September 2017 16:45:19
+            #info_time = 15 Sep 2017 22:04
             info_time = info.split(',')[1].strip()
-            time_arr = filter(None, re.split('[\s,|]',info_time))
+            time_arr = filter(None, re.split('[\s,|]',info_time))[:4]
             info_time = ' '.join([_(s) for s in time_arr if s])
 
             #parse date information
             try:
-                published_at_wib = datetime.strptime(info_time, '%d %B %Y')
+                published_at_wib = datetime.strptime(info_time, '%d %b %Y %H:%M')
             except ValueError as e:
                 raise CloseSpider('cannot_parse_date: %s' % e)
 
@@ -69,8 +68,11 @@ class PilkadaJabar2018RepublikaSpider(BaseSpider):
             self.logger.info('Media have no update')
             return
 
-        if response.css('div.pagination > section > nav > ul > li.button'):
+        if (response.css('div.pagination > section > nav > ul > li.button > a::text')[0].extract() == "Next"):
             next_page = response.css('div.pagination > section > nav > ul > li.button > a::attr(href)')[0].extract()
+            yield Request(next_page, callback=self.parse)
+        else:
+            next_page = response.css('div.pagination > section > nav > ul > li.button > a::attr(href)')[1].extract()
             yield Request(next_page, callback=self.parse)
 
     def parse_news(self, response):
