@@ -28,6 +28,43 @@ class PilkadaJabar2018KompasSpider(BaseSpider):
     def parse(self, response):
         is_no_update = False
 
+        articles_top_5 = response.css("div.article__wrap__grid--flex > div")
+
+        if articles_top_5:
+            for article in articles_top_5:
+                url_selector = article.css("div.article__grid > div.article__box > h3.article__title > a::attr(href)")
+                if not url_selector:
+                    continue
+                url = url_selector.extract_first()
+                print url
+
+                info_selectors = article.css("div.article__grid > div.article__box > div.article__date::text")
+                if not info_selectors:
+                    continue
+
+                #info = 10/10/2017, 13:37 WIB
+                info = info_selectors.extract_first()
+
+                time_arr = filter(None,re.split('[\s,]', info))[:2]
+                info_time = ' '.join([s for s in time_arr if s])
+                # print info_time
+                #parse date information
+                try:
+                    published_at_wib = datetime.strptime(info_time, '%d/%m/%Y %H:%M')
+                except ValueError as e:
+                    raise CloseSpider('cannot_parse_date: %s' % e)
+
+                #convert to utc+0
+                published_at = wib_to_utc(published_at_wib)
+                print published_at
+
+                if self.media['last_crawl_at'] >= published_at:
+                    is_no_update = True
+                    break
+
+                yield Request(url=url, callback=self.parse_news)
+
+
         articles = response.css("div.latest--topic.mt2.clearfix > div.article__list.clearfix")
 
         if articles:
