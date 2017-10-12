@@ -11,17 +11,17 @@ from rojak_pantau.i18n import _
 from rojak_pantau.util.wib_to_utc import wib_to_utc
 from rojak_pantau.spiders.base import BaseSpider
 
-class PilkadaJabar2018MerdekacomSpider(BaseSpider):
-    name = "pilkada_jabar_2018_merdekacom"
+class PilkadaJatim2018MerdekacomSpider(BaseSpider):
+    name = "pilkada_jatim_2018_merdekacom"
     allowed_domains = ["m.merdeka.com"]
     start_urls = (
-        'https://m.merdeka.com/tag/p/pilgub-jabar/',
+        'https://m.merdeka.com/tag/p/pilgub-jatim/',
     )
 
     def __init__(self):
         media_id = "merdekacom"
-        election_id = "pilkada_jabar_2018"
-        super(PilkadaJabar2018MerdekacomSpider, self).__init__(media_id, election_id)
+        election_id = "pilkada_jatim_2018"
+        super(PilkadaJatim2018MerdekacomSpider, self).__init__(media_id, election_id)
 
     def parse(self, response):
         base_url = "https://m.merdeka.com"
@@ -89,8 +89,8 @@ class PilkadaJabar2018MerdekacomSpider(BaseSpider):
         title = title_selectors.extract_first()
         loader.add_value('title', title)
 
+        #parse date
         date_selectors = response.css("div.mdk-date-reporter > span::text")
-        # We need to do this because sometimes selector can contains 3 or 2 elements.
         pos = len(date_selectors) - 2;
         if not date_selectors:
             return loader.load_item()
