@@ -12,13 +12,13 @@ from rojak_pantau.util.wib_to_utc import wib_to_utc
 from rojak_pantau.spiders.base import BaseSpider
 from rojak_pantau.spiders.pilkada_2018_merdekacom import Pilkada2018MerdekacomSpider
 
-class PilkadaJabar2018MerdekacomSpider(Pilkada2018MerdekacomSpider):
-    name = "pilkada_jabar_2018_merdekacom"
+class PilkadaJatim2018MerdekacomSpider(Pilkada2018MerdekacomSpider):
+    name = "pilkada_jatim_2018_merdekacom"
     start_urls = (
-        'https://m.merdeka.com/tag/p/pilgub-jabar/',
+        'https://m.merdeka.com/tag/p/pilgub-jatim/',
     )
 
     def __init__(self):
         media_id = "merdekacom"
-        election_id = "pilkada_jabar_2018"
-        super(PilkadaJabar2018MerdekacomSpider, self).__init__(media_id, election_id)
+        election_id = "pilkada_jatim_2018"
+        super(PilkadaJatim2018MerdekacomSpider, self).__init__(media_id, election_id)
