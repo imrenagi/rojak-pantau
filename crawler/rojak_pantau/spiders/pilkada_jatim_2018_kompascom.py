@@ -18,8 +18,6 @@ class PilkadaJatim2018KompascomSpider(Pilkada2018KompascomSpider):
         'http://indeks.kompas.com/tag/Pilkada-Jatim-2018/desc/1',
     )
 
-    custom_settings = {"USER_AGENT":'Mozilla/5.0 (X11; CrOS x86_64 8172.45.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.64 Safari/537.36'}
-
     def __init__(self):
         media_id = "kompascom"
         election_id = "pilkada_jatim_2018"

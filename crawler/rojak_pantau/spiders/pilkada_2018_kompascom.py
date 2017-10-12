@@ -14,9 +14,10 @@ from rojak_pantau.spiders.base import BaseSpider
 
 class Pilkada2018KompascomSpider(BaseSpider):
 
+    custom_settings = {"USER_AGENT":'Mozilla/5.0 (X11; CrOS x86_64 8172.45.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.64 Safari/537.36'}
+
     def __init__(self, media_id, election_id):
-        self.media_id = media_id
-        self.election_id = election_id
+        super(Pilkada2018KompascomSpider, self).__init__(media_id, election_id)
 
     def parse(self, response):
         is_no_update = False
