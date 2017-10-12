@@ -11,12 +11,17 @@ from rojak_pantau.i18n import _
 from rojak_pantau.util.wib_to_utc import wib_to_utc
 from rojak_pantau.spiders.base import BaseSpider
 
-class PilkadaJabar2018PikiranRakyatSpider(scrapy.Spider):
+class PilkadaJabar2018PikiranRakyatSpider(BaseSpider):
     name = "pilkada_jabar_2018_pikiranrakyatcom"
     allowed_domains = ["pikiran-rakyat.com"]
     start_urls = (
         'http://www.pikiran-rakyat.com/tags/pilgub-jabar',
     )
+
+    def __init__(self):
+        media_id = "pikiranrakyatcom"
+        election_id = "pilkada_jabar_2018"
+        super(PilkadaJabar2018PikiranRakyatSpider, self).__init__(media_id, election_id)
 
     def parse(self, response):
         base_url = "http://www.pikiran-rakyat.com"
@@ -66,6 +71,9 @@ class PilkadaJabar2018PikiranRakyatSpider(scrapy.Spider):
 
         loader = ItemLoader(item=News(), response=response)
         loader.add_value('url', response.url)
+
+        loader.add_value('media_id', self.media_id)
+        loader.add_value('election_id', self.election_id)
 
         #parse title
         title_selectors = response.css('section.main-content > h1::text')
