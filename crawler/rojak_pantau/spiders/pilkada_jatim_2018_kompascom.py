@@ -12,15 +12,15 @@ from rojak_pantau.util.wib_to_utc import wib_to_utc
 from rojak_pantau.spiders.base import BaseSpider
 from rojak_pantau.spiders.pilkada_2018_kompascom import Pilkada2018KompascomSpider
 
-class PilkadaJabar2018KompascomSpider(Pilkada2018KompascomSpider):
-    name = "pilkada_jabar_2018_kompascom"
+class PilkadaJatim2018KompascomSpider(Pilkada2018KompascomSpider):
+    name = "pilkada_jatim_2018_kompascom"
     start_urls = (
-        'http://indeks.kompas.com/tag/Pilkada-Jabar-2018/desc/1',
+        'http://indeks.kompas.com/tag/Pilkada-Jatim-2018/desc/1',
     )
 
     custom_settings = {"USER_AGENT":'Mozilla/5.0 (X11; CrOS x86_64 8172.45.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.64 Safari/537.36'}
 
     def __init__(self):
         media_id = "kompascom"
-        election_id = "pilkada_jabar_2018"
-        super(PilkadaJabar2018KompascomSpider, self).__init__(media_id, election_id)
+        election_id = "pilkada_jatim_2018"
+        super(PilkadaJatim2018KompascomSpider, self).__init__(media_id, election_id)
