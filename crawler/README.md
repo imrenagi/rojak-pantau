@@ -15,9 +15,8 @@ The reason of using this crawling framework are discussed below:
 Notes: The crawler will not automatically run when the container has been created. To run the crawler, you need to go container console by doing this following steps:
 
 * Run `docker ps` to see the list of running containers
-* Note the `CONTAINER ID` of `rojak-spider`.
-* Use `docker exec -it <CONTAINER ID> bash` to open the crawler console
-* To run the crawler use this following command:
+* Use `docker exec -it rojak-spider bash` to open the crawler console
+* To run the crawler use this following command from inside the container:
 ```
 scrapy crawl pilkada_jabar_2018_merdekacom
 ```
