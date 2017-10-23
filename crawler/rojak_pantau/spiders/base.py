@@ -8,31 +8,20 @@ from slacker import Slacker
 from scrapy.exceptions import CloseSpider, NotConfigured
 from scrapy import signals
 
-ROJAK_DB_HOST = os.getenv('ROJAK_DB_HOST', 'mysql')
-ROJAK_DB_PORT = int(os.getenv('ROJAK_DB_PORT', 3306))
-ROJAK_DB_USER = os.getenv('ROJAK_DB_USER', 'root')
-ROJAK_DB_PASS = os.getenv('ROJAK_DB_PASS', 'rojak')
-ROJAK_DB_NAME = os.getenv('ROJAK_DB_NAME', 'crawler')
-ROJAK_SLACK_TOKEN = os.getenv('ROJAK_SLACK_TOKEN', '')
-
-sql_get_media = '''
-SELECT id,last_crawl_at FROM `crawler_history`
-WHERE media_id=%s AND election_id=%s;
-'''
-
-sql_update_media = '''
-UPDATE `crawler_history`
-SET last_crawl_at=UTC_TIMESTAMP()
-WHERE media_id=%s AND election_id=%s;
-'''
+from rojak_pantau.common import config, sql
 
 class BaseSpider(scrapy.Spider):
     # Initialize database connection then retrieve media ID and
     # last_scraped_at information
     def __init__(self, media_id, election_id):
         # Open database connection
-        self.db = mysql.connect(host=ROJAK_DB_HOST, port=ROJAK_DB_PORT,
-            user=ROJAK_DB_USER, passwd=ROJAK_DB_PASS, db=ROJAK_DB_NAME)
+        self.db = mysql.connect(
+            host=config.db_host(),
+            port=config.db_port(), 
+            user=config.db_user(),
+            passwd=config.db_pass(),
+            db=config.db_name()
+        )
         self.cursor = self.db.cursor()
 
         self.media = {}
@@ -42,7 +31,7 @@ class BaseSpider(scrapy.Spider):
         try:
             # Get media information from the database
             self.logger.info('Fetching media information')
-            self.cursor.execute(sql_get_media, [self.media_id, self.election_id])
+            self.cursor.execute(sql.get_media(), [self.media_id, self.election_id])
             row = self.cursor.fetchone()
             self.media['id'] = row[0]
             self.media['last_crawl_at'] = row[1]
@@ -50,9 +39,9 @@ class BaseSpider(scrapy.Spider):
             self.logger.error('Unable to fetch media data: %s', err)
             raise NotConfigured('Unable to fetch media data: %s' % err)
 
-        if ROJAK_SLACK_TOKEN != '':
+        if config.slack_token() != '':
             self.is_slack = True
-            self.slack = Slacker(ROJAK_SLACK_TOKEN)
+            self.slack = Slacker(config.slack_token())
         else:
             self.is_slack = False
             self.logger.info('Post error to #rojak-pantau-errors is disabled')
@@ -82,7 +71,7 @@ class BaseSpider(scrapy.Spider):
         if reason == 'finished':
             try:
                 self.logger.info('Updating media last_scraped_at information')
-                self.cursor.execute(sql_update_media, [spider.media_id, spider.election_id])
+                self.cursor.execute(sql.update_media(), [spider.media_id, spider.election_id])
                 self.db.commit()
                 self.db.close()
             except mysql.Error as err:
@@ -103,10 +92,20 @@ class BaseSpider(scrapy.Spider):
                         error_msg, as_user=True)
 
     # subscibe to item_droped event
-    def item_dropped(item, response, exception, spider):
+    def item_dropped(self, item, response, exception, spider):
         if self.is_slack:
             # Send error to slack
             error_msg = '{}: Item dropped because: {}'.format(
                 spider.name, exception)
             spider.slack.chat.post_message('#rojak-pantau-errors',
                     error_msg, as_user=True)
+
+    # parse is to be implemented by concrete class
+    # for parsing the list of news articles
+    def parse(self, response):
+        pass
+
+    # parse_news is to be implemented by concrete class
+    # for parsing each of article news
+    def parse_news(self, response):
+        pass
