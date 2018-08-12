@@ -29,13 +29,4 @@ CREATE TABLE IF NOT EXISTS `news` (
 
 INSERT INTO `crawler_history` (`id`, `media_id`, `election_id`, `created_at`, `last_crawl_at`)
 VALUES
-	(1, 'merdekacom', 'pilkada_jabar_2018', '2017-09-15 03:24:49', '2017-01-01 00:00:01'),
-	(2, 'sindonewscom', 'pilkada_jabar_2018', '2017-09-15 04:20:52', '2017-01-01 00:00:01'),
-  (3, 'republika', 'pilkada_jabar_2018', '2017-09-15 04:20:52', '2017-01-01 00:00:01'),
-  (4, 'jawaposcom', 'pilkada_jabar_2018', '2017-09-15 04:20:52', '2017-01-01 00:00:01'),
-  (5, 'tempoco', 'pilkada_jabar_2018', '2017-09-15 04:20:52', '2017-01-01 00:00:01'),
-  (6, 'detiknewscom', 'pilkada_jabar_2018', '2017-09-15 04:20:52', '2017-01-01 00:00:01'),
-  (7, 'detiknewscom', 'pilkada_jatim_2018', '2017-09-15 04:20:52', '2017-01-01 00:00:01'),
-  (8, 'kompascom', 'pilkada_jabar_2018', '2017-09-15 04:20:52', '2017-01-01 00:00:01'),
-  (9, 'kompascom', 'pilkada_jatim_2018', '2017-09-15 04:20:52', '2017-01-01 00:00:01'),
-  (10, 'merdekacom', 'pilkada_jatim_2018', '2017-09-15 04:20:52', '2017-01-01 00:00:01');
+  (1, 'detiknewscom', 'pilpres_2019', '2018-01-01 00:00:00', '2017-01-01 00:00:01')
