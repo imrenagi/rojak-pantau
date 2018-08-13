@@ -29,4 +29,6 @@ CREATE TABLE IF NOT EXISTS `news` (
 
 INSERT INTO `crawler_history` (`id`, `media_id`, `election_id`, `created_at`, `last_crawl_at`)
 VALUES
-  (1, 'detiknewscom', 'pilpres_2019', '2018-01-01 00:00:00', '2017-01-01 00:00:01')
+  (1, 'detiknewscom', 'pilpres_2019', '2018-01-01 00:00:00', '2017-01-01 00:00:01'),
+  (2, 'kompascom', 'pilpres_2019', '2018-01-01 00:00:00', '2017-01-01 00:00:01')
+
