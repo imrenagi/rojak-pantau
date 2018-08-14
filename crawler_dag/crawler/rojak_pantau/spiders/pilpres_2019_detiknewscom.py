@@ -72,7 +72,7 @@ class Pilpres2019DetiknewscomSpider(BaseSpider):
                 # eg: 6 Hours ago
                 if self.media['last_crawl_at'] >= published_at:
                     is_no_update = True
-                    break
+                    continue
 
                 yield Request(url=url, callback=self.parse_news)
 

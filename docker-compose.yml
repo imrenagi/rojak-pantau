@@ -2,11 +2,11 @@ version: '2'
 services:
 
   spider:
-    build: ./crawler
+    build: crawler_dag/crawler
     container_name: rojak-spider
     restart: always
     volumes:
-      - "./crawler:/src"
+      - "./crawler_dag/crawler:/src"
     logging:
       options:
         max-size: "10m"
