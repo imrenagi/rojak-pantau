@@ -36,4 +36,11 @@ kompascom_collection = BashOperator(
     """ % (Variable.get('etl_dags_folder')),
     dag=dag)
 
+republikacoid_collection = BashOperator(
+    task_id='republikacoid_collection',
+    bash_command="""
+        cd %s/crawler_dag/crawler/rojak_pantau/spiders && scrapy crawl pilpres_2019_republikacoid
+    """ % (Variable.get('etl_dags_folder')),
+    dag=dag)
+
 
