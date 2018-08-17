@@ -66,18 +66,16 @@ class Pilpres2019DetiknewscomSpider(BaseSpider):
 
                 yield Request(url=url, callback=self.parse_news)
 
-        # if is_no_update:
-        #     self.logger.info('Media have no update')
-        #     return
-
-        if response.css("div.paging.text_center > a.last"):
-            navs = response.css("div.paging.text_center > a.last")
-            for nav in navs:
-                direction = nav.css("img::attr(alt)").extract_first()
-                if direction.lower() == 'kanan':
-                    next_page = nav.css("a::attr(href)").extract_first()
-
-                    yield Request(next_page, callback=self.parse)
+        if is_no_update:
+            self.logger.info('Media have no update')
+        else:
+            if response.css("div.paging.text_center > a.last"):
+                navs = response.css("div.paging.text_center > a.last")
+                for nav in navs:
+                    direction = nav.css("img::attr(alt)").extract_first()
+                    if direction.lower() == 'kanan':
+                        next_page = nav.css("a::attr(href)").extract_first()
+                        yield Request(next_page, callback=self.parse)
 
     def parse_news(self, response):
 

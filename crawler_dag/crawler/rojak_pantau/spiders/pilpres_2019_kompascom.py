@@ -63,16 +63,15 @@ class Pilpres2019KompascomSpider(BaseSpider):
 
                 yield Request(url=url, callback=self.parse_news)
 
-        # if is_no_update:
-        #     self.logger.info('Media have no update')
-        #     return
-
-        next_selectors = response.css("div.paging__wrap > div.paging__item > a.paging__link.paging__link--next")
-        for num in range(0,len(next_selectors)):
-            if next_selectors[num].css("a::attr(rel)").extract_first() == 'next':
-                next_url = next_selectors[num].css("a::attr(href)").extract_first()
-                yield Request(next_url, callback=self.parse)
-                break
+        if is_no_update:
+            self.logger.info('Media have no update')
+        else:
+            next_selectors = response.css("div.paging__wrap > div.paging__item > a.paging__link.paging__link--next")
+            for num in range(0,len(next_selectors)):
+                if next_selectors[num].css("a::attr(rel)").extract_first() == 'next':
+                    next_url = next_selectors[num].css("a::attr(href)").extract_first()
+                    yield Request(next_url, callback=self.parse)
+                    break
 
     def parse_news(self, response):
 

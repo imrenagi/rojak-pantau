@@ -66,19 +66,18 @@ class Pilpres2019RepublikacoidSpider(BaseSpider):
 
                 yield Request(url=url, callback=self.parse_news)
 
-        # if is_no_update:
-        #     self.logger.info('Media have no update')
-        #     return
-
-        if response.css("div.pagination > section > nav > a"):
-            links = response.css("div.pagination > section > nav > a")
-            for link in links:
-                l = link.css("a::text").extract_first()
-                if l.lower() == 'next':
-                    next_page = link.css("a::attr(href)").extract_first()
-                    yield Request(next_page, callback=self.parse)
-                else:
-                    continue
+        if is_no_update:
+            self.logger.info('Media have no update')
+        else:
+            if response.css("div.pagination > section > nav > a"):
+                links = response.css("div.pagination > section > nav > a")
+                for link in links:
+                    l = link.css("a::text").extract_first()
+                    if l.lower() == 'next':
+                        next_page = link.css("a::attr(href)").extract_first()
+                        yield Request(next_page, callback=self.parse)
+                    else:
+                        continue
 
     def parse_news(self, response):
 

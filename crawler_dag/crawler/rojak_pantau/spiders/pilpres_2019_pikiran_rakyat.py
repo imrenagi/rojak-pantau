@@ -71,15 +71,14 @@ class Pilpres2019PikiranRakyatSpider(BaseSpider):
 
                 yield Request(url=full_url, callback=self.parse_news)
 
-        # if is_no_update:
-        #     self.logger.info('Media have no update')
-        #     return
-
-        next_selectors = response.css("ul.pagination > li.next")
-        if next_selectors:
-            next_url = next_selectors.css("a::attr(href)").extract_first()
-            next_url = '%s%s' % (self.base_url, next_url)
-            yield Request(next_url, callback=self.parse)
+        if is_no_update:
+            self.logger.info('Media have no update')
+        else:
+            next_selectors = response.css("ul.pagination > li.next")
+            if next_selectors:
+                next_url = next_selectors.css("a::attr(href)").extract_first()
+                next_url = '%s%s' % (self.base_url, next_url)
+                yield Request(next_url, callback=self.parse)
 
     def parse_news(self, response):
 
