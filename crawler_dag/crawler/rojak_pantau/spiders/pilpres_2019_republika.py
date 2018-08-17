@@ -66,9 +66,9 @@ class Pilpres2019RepublikacoidSpider(BaseSpider):
 
                 yield Request(url=url, callback=self.parse_news)
 
-        if is_no_update:
-            self.logger.info('Media have no update')
-            return
+        # if is_no_update:
+        #     self.logger.info('Media have no update')
+        #     return
 
         if response.css("div.pagination > section > nav > a"):
             links = response.css("div.pagination > section > nav > a")

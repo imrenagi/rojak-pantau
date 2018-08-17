@@ -62,9 +62,9 @@ class Pilpres2019TribunnewsSpider(BaseSpider):
 
                 yield Request(url=url, callback=self.parse_news)
 
-        if is_no_update:
-            self.logger.info('Media have no update')
-            return
+        # if is_no_update:
+        #     self.logger.info('Media have no update')
+        #     return
 
         next_selectors = response.css("div.ma10.paging#paginga > a")
         for num in range(0,len(next_selectors)):

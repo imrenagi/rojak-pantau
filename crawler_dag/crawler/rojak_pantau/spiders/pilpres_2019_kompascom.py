@@ -63,9 +63,9 @@ class Pilpres2019KompascomSpider(BaseSpider):
 
                 yield Request(url=url, callback=self.parse_news)
 
-        if is_no_update:
-            self.logger.info('Media have no update')
-            return
+        # if is_no_update:
+        #     self.logger.info('Media have no update')
+        #     return
 
         next_selectors = response.css("div.paging__wrap > div.paging__item > a.paging__link.paging__link--next")
         for num in range(0,len(next_selectors)):
