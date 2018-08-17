@@ -51,9 +51,6 @@ class Pilpres2019RepublikacoidSpider(BaseSpider):
                 time_arr = filter(None, re.split('[\s,|]', info_time))[:4]
                 info_time = ' '.join([_(s) for s in time_arr if s])
 
-                print url
-                print date_str
-
                 try:
                     published_at_wib = datetime.strptime(info_time, '%d %B %Y %H:%M')
                 except ValueError as e:
@@ -65,9 +62,13 @@ class Pilpres2019RepublikacoidSpider(BaseSpider):
                 # TODO
                 if self.media['last_crawl_at'] >= published_at:
                     is_no_update = True
-                    continue
+                    break
 
                 yield Request(url=url, callback=self.parse_news)
+
+        if is_no_update:
+            self.logger.info('Media have no update')
+            return
 
         if response.css("div.pagination > section > nav > a"):
             links = response.css("div.pagination > section > nav > a")
@@ -75,7 +76,6 @@ class Pilpres2019RepublikacoidSpider(BaseSpider):
                 l = link.css("a::text").extract_first()
                 if l.lower() == 'next':
                     next_page = link.css("a::attr(href)").extract_first()
-                    print next_page
                     yield Request(next_page, callback=self.parse)
                 else:
                     continue
@@ -111,7 +111,7 @@ class Pilpres2019RepublikacoidSpider(BaseSpider):
         try:
             published_at_wib = datetime.strptime(info_time, '%d %B %Y %H:%M')
         except ValueError as e:
-            raise CloseSpider('cannot_parse_date: %s in %s' % (e, response.url))
+            return loader.load_item()
 
         # convert to utc+0
         published_at = wib_to_utc(published_at_wib)

@@ -6,7 +6,7 @@ from airflow.models import Variable
 
 default_args = {
     'owner': 'imre',
-    'depends_on_past': False,
+    'depends_on_past': True,
     'start_date': datetime(2018, 8, 13),
     'email': ['imre.nagi2812@gmail.com'],
     'email_on_failure': True,
@@ -43,4 +43,5 @@ republikacoid_collection = BashOperator(
     """ % (Variable.get('etl_dags_folder')),
     dag=dag)
 
-
+detik_collection.set_downstream(kompascom_collection)
+kompascom_collection.set_downstream(republikacoid_collection)

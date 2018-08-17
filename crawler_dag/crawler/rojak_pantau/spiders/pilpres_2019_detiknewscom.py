@@ -11,8 +11,6 @@ from rojak_pantau.items import News
 from rojak_pantau.i18n import _
 from rojak_pantau.util.wib_to_utc import wib_to_utc
 from rojak_pantau.spiders.base import BaseSpider
-from rojak_pantau.spiders.pilkada_2018_detiknewscom import Pilkada2018DetiknewscomSpider
-
 
 class Pilpres2019DetiknewscomSpider(BaseSpider):
     name = "pilpres_2019_detiknewscom"
@@ -27,14 +25,6 @@ class Pilpres2019DetiknewscomSpider(BaseSpider):
 
     def parse(self, response):
         is_no_update = False
-
-        # photos = response.css("div.list.media_rows.list-berita > article.foto_tag > div.grid_row.foto_list > div.item > article")
-        # if photos:
-        #     for photo in photos:
-        #         url_selector = photo.css("a::attr(href)")
-        #         if url_selector:
-        #             url = url_selector.extract_first();
-        #             print url
 
         articles = response.css("div.list.media_rows.list-berita > article")
         if articles:
@@ -72,9 +62,13 @@ class Pilpres2019DetiknewscomSpider(BaseSpider):
                 # eg: 6 Hours ago
                 if self.media['last_crawl_at'] >= published_at:
                     is_no_update = True
-                    continue
+                    break
 
                 yield Request(url=url, callback=self.parse_news)
+
+        if is_no_update:
+            self.logger.info('Media have no update')
+            return
 
         if response.css("div.paging.text_center > a.last"):
             navs = response.css("div.paging.text_center > a.last")
@@ -82,7 +76,7 @@ class Pilpres2019DetiknewscomSpider(BaseSpider):
                 direction = nav.css("img::attr(alt)").extract_first()
                 if direction.lower() == 'kanan':
                     next_page = nav.css("a::attr(href)").extract_first()
-                    print next_page
+
                     yield Request(next_page, callback=self.parse)
 
     def parse_news(self, response):
@@ -114,7 +108,7 @@ class Pilpres2019DetiknewscomSpider(BaseSpider):
         try:
             published_at_wib = datetime.strptime(info_time, '%d %B %Y %H:%M')
         except ValueError as e:
-            raise CloseSpider('cannot_parse_date: %s in %s' % (e, response.url))
+            return loader.load_item()
 
         # convert to utc+0
         published_at = wib_to_utc(published_at_wib)
