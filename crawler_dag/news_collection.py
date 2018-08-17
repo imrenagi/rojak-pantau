@@ -43,5 +43,21 @@ republikacoid_collection = BashOperator(
     """ % (Variable.get('etl_dags_folder')),
     dag=dag)
 
+tribunnews_collection = BashOperator(
+    task_id='tribunnews_collection',
+    bash_command="""
+        cd %s/crawler_dag/crawler/rojak_pantau/spiders && scrapy crawl pilpres_2019_tribunnewscom
+    """ % (Variable.get('etl_dags_folder')),
+    dag=dag)
+
+pikiran_rakyat_collection = BashOperator(
+    task_id='pikiran_rakyat_collection',
+    bash_command="""
+        cd %s/crawler_dag/crawler/rojak_pantau/spiders && scrapy crawl pilpres_2019_pikiranrakyat
+    """ % (Variable.get('etl_dags_folder')),
+    dag=dag)
+
 detik_collection.set_downstream(kompascom_collection)
 kompascom_collection.set_downstream(republikacoid_collection)
+republikacoid_collection.set_downstream(tribunnews_collection)
+tribunnews_collection.set_downstream(pikiran_rakyat_collection)
