@@ -12,17 +12,20 @@ from rojak_pantau.i18n import _
 from rojak_pantau.util.wib_to_utc import wib_to_utc
 from rojak_pantau.spiders.base import BaseSpider
 
-class Pilpres2019TribunnewsSpider(BaseSpider):
+class Pilpres2019PikiranRakyatSpider(BaseSpider):
 
     name = "pilpres_2019_pikiranrakyat"
     start_urls = (
-        'http://m.tribunnews.com/topic/pilpres-2019',
+        'http://www.pikiran-rakyat.com/tags/pilpres-2019?',
     )
+
+    base_url = None
 
     def __init__(self):
         media_id = "pikiranrakyat"
         election_id = "pilpres_2019"
-        super(Pilpres2019TribunnewsSpider, self).__init__(media_id, election_id)
+        self.base_url = 'http://www.pikiran-rakyat.com'
+        super(Pilpres2019PikiranRakyatSpider, self).__init__(media_id, election_id)
 
     def parse(self, response):
         is_no_update = False
@@ -64,18 +67,19 @@ class Pilpres2019TribunnewsSpider(BaseSpider):
                 print url
                 print published_at_wib
 
-                yield Request(url=url, callback=self.parse_news)
+                full_url = '%s%s' % (self.base_url,url)
+
+                yield Request(url=full_url, callback=self.parse_news)
 
         if is_no_update:
             self.logger.info('Media have no update')
             return
 
-        next_selectors = response.css("div.ma10.paging#paginga > a")
-        for num in range(0,len(next_selectors)):
-            if next_selectors[num].css("a::text").extract_first().lower() == 'next':
-                next_url = next_selectors[num].css("a::attr(href)").extract_first()
-                yield Request(next_url, callback=self.parse)
-                break
+        next_selectors = response.css("ul.pagination > li.next")
+        if next_selectors:
+            next_url = next_selectors.css("a::attr(href)").extract_first()
+            next_url = '%s%s' % (self.base_url, next_url)
+            yield Request(next_url, callback=self.parse)
 
     def parse_news(self, response):
 
