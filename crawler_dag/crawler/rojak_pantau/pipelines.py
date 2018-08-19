@@ -5,6 +5,7 @@
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 import MySQLdb as mysql
+import logging
 from scrapy.exceptions import CloseSpider, DropItem
 
 class NewsValidation(object):
@@ -65,11 +66,10 @@ class SaveToMySQL(object):
                 title, raw_content, url, author_name, published_at])
             spider.db.commit()
         except mysql.Error as err:
+            error_msg = '{}: Unable to save news: {} err: {}'.format(spider.name, url, err)
+            logging.warning(error_msg)
             spider.db.rollback()
             if spider.is_slack:
-                error_msg = '{}: Unable to save news: {}\n```\n{}\n```\n'.format(
-                    spider.name, url, err)
-                spider.slack.chat.post_message('#rojak-pantau-errors', error_msg,
-                    as_user=True)
+                spider.slack.chat.post_message('#rojak-pantau-errors', error_msg, as_user=True)
 
         return item

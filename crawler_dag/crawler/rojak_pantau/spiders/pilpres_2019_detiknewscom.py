@@ -15,7 +15,7 @@ from rojak_pantau.spiders.base import BaseSpider
 class Pilpres2019DetiknewscomSpider(BaseSpider):
     name = "pilpres_2019_detiknewscom"
     start_urls = (
-        'https://www.detik.com/tag/pilpres-2019',
+        'https://www.detik.com/search/searchall?query=pilpres%202019&sortby=time&page=0',
     )
 
     def __init__(self):
@@ -36,7 +36,7 @@ class Pilpres2019DetiknewscomSpider(BaseSpider):
                     continue
 
                 url = url_selector.extract_first()
-                print url
+                self.logger.info(url)
 
                 # parse date
                 date_selectors = article.css("a > span.box_text > span.date::text")
@@ -62,12 +62,14 @@ class Pilpres2019DetiknewscomSpider(BaseSpider):
                 # eg: 6 Hours ago
                 if self.media['last_crawl_at'] >= published_at:
                     is_no_update = True
+                    self.logger.info('Done sending requests. No more')
                     break
 
                 yield Request(url=url, callback=self.parse_news)
 
         if is_no_update:
             self.logger.info('Media have no update')
+            return
         else:
             if response.css("div.paging.text_center > a.last"):
                 navs = response.css("div.paging.text_center > a.last")
